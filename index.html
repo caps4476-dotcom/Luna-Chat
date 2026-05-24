@@ -162,6 +162,8 @@ textarea::placeholder{color:var(--muted)}
       <input type="password" id="orKey" placeholder="sk-or-v1-..." autocomplete="off">
       <div class="field-label">Dein Name (optional)</div>
       <input type="text" id="userName" placeholder="Wie soll ich dich nennen?" maxlength="30">
+      <div class="field-label">Together AI Key <span style="color:#34d399;font-size:.7rem">(für Bilder – optional)</span></div>
+      <input type="password" id="togetherKey" placeholder="sk-... (together.ai)" autocomplete="off">
       <button class="btn-primary" onclick="startChat()">✨ Luna treffen</button>
       <p class="setup-hint">
         Kostenlos registrieren: <a href="https://openrouter.ai" target="_blank">openrouter.ai</a><br>
@@ -222,10 +224,11 @@ textarea::placeholder{color:var(--muted)}
 
 <script>
 // ── State ──────────────────────────────────────
-let OR_KEY    = '';
-let USER_NAME = '';
-let history   = [];
-let memories  = [];
+let OR_KEY       = '';
+let USER_NAME    = '';
+let TOGETHER_KEY = '';
+let history      = [];
+let memories     = [];
 
 // ── System Prompt ──────────────────────────────
 function sysPrompt() {
@@ -271,10 +274,13 @@ function startChat() {
   USER_NAME = name;
   localStorage.setItem('luna_key',  key);
   localStorage.setItem('luna_name', name);
+  const tKey = document.getElementById('togetherKey').value.trim();
+  if (tKey) localStorage.setItem('luna_together', tKey);
 
   // Load saved data
   history  = JSON.parse(localStorage.getItem('luna_history')  || '[]');
   memories = JSON.parse(localStorage.getItem('luna_memories') || '[]');
+  TOGETHER_KEY = localStorage.getItem('luna_together') || '';
 
   document.getElementById('setupScreen').style.display = 'none';
   const cs = document.getElementById('chatScreen');
@@ -385,6 +391,52 @@ function appendMsg(role, text, emotion = null) {
   document.getElementById('chat').scrollTop = 999999;
 }
 
+// Model fallback chain: try each in order
+const MODELS = [
+  'mistralai/mistral-small-3.2-24b-instruct:free',
+  'mistralai/mistral-small-3.1-24b-instruct:free',
+  'openrouter/free'
+];
+let currentModel = MODELS[0];
+let modelIndex = 0;
+
+async function tryRequest(messages) {
+  for (let i = modelIndex; i < MODELS.length; i++) {
+    currentModel = MODELS[i];
+    try {
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${OR_KEY}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': window.location.href,
+          'X-Title': 'Luna Chat'
+        },
+        body: JSON.stringify({
+          model: currentModel,
+          max_tokens: 500,
+          messages
+        })
+      });
+      const data = await res.json();
+      if (data.error) {
+        // Try next model
+        console.warn(`Model ${currentModel} failed:`, data.error.message);
+        continue;
+      }
+      const raw = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content)
+        ? data.choices[0].message.content : '';
+      if (!raw) continue;
+      modelIndex = i; // remember which worked
+      return raw;
+    } catch(e) {
+      console.warn(`Model ${currentModel} error:`, e);
+      continue;
+    }
+  }
+  throw new Error('Kein Modell verfügbar – bitte später nochmal versuchen.');
+}
+
 async function send(txt) {
   const inp = document.getElementById('inp');
   const msg = (txt || inp.value).trim();
@@ -399,37 +451,25 @@ async function send(txt) {
   document.getElementById('chat').scrollTop = 999999;
 
   try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OR_KEY}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': window.location.href,
-        'X-Title': 'Luna Chat'
-      },
-      body: JSON.stringify({
-        model: 'mistralai/mistral-small-3.2-24b-instruct:free',
-        max_tokens: 500,
-        messages: [
-          { role: 'system', content: sysPrompt() },
-          ...history.slice(-20)
-        ]
-      })
-    });
-
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-
-    const raw     = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) ? data.choices[0].message.content : '';
-    if (!raw) throw new Error('Leere Antwort vom Modell');
+    const msgs = [{ role: 'system', content: sysPrompt() }, ...history.slice(-20)];
+    const raw = await tryRequest(msgs);
     const emotion = extractEmotion(raw);
-    const text    = clean(raw);
+    const text    = cleanImage(clean(raw));
 
     extractMem(raw);
     updateEmotion(emotion);
     typing.classList.remove('on');
     appendMsg('ai', text, emotion);
     speak(text);
+
+    // Check if Luna wants to generate an image
+    const imagePrompt = extractImagePrompt(raw);
+    if (imagePrompt && TOGETHER_KEY) {
+      showToast('🎨 Luna malt ein Bild…');
+      generateImage(imagePrompt).then(url => {
+        if (url) appendImage(url);
+      });
+    }
 
     history.push({ role: 'assistant', content: raw });
     localStorage.setItem('luna_history', JSON.stringify(history.slice(-40)));
@@ -470,6 +510,8 @@ window.addEventListener('load', () => {
   if (saved) {
     document.getElementById('orKey').value = saved;
     document.getElementById('userName').value = localStorage.getItem('luna_name') || '';
+    const tk = localStorage.getItem('luna_together');
+    if (tk) document.getElementById('togetherKey').value = tk;
     startChat();
   }
 });
