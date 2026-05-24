@@ -4,75 +4,307 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Luna</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;1,400&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
 <style>
-body { background:#0c0c14; color:#ede8f5; font-family:sans-serif; display:flex; flex-direction:column; height:100dvh; margin:0; }
+* { margin:0; padding:0; box-sizing:border-box; }
+:root { --bg:#0c0c14; --s2:#1c1a2e; --rose:#f4a7b9; --violet:#9d7fe8; --text:#ede8f5; --muted:#7a6e94; }
+body { background:var(--bg); color:var(--text); font-family:'Outfit',sans-serif; display:flex; flex-direction:column; height:100dvh; overflow:hidden; }
+
+header { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid #ffffff10; flex-shrink:0; }
+.av { width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#9d7fe8,#f4a7b9); display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0; }
+.hinfo h2 { font-family:'Lora',serif; font-size:1rem; }
+#emo { font-size:.72rem; color:var(--rose); margin-top:2px; }
+.hact { margin-left:auto; }
+.ibtn { width:36px; height:36px; border-radius:50%; border:1px solid #ffffff15; background:#ffffff08; color:var(--muted); cursor:pointer; font-size:.9rem; }
+
 #chat { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
-.user { align-self:flex-end; background:#4d3570; padding:10px 14px; border-radius:16px; max-width:80%; }
-.ai { align-self:flex-start; background:#1c1a2e; padding:10px 14px; border-radius:16px; max-width:80%; }
-#bar { display:flex; padding:12px; gap:10px; background:#0c0c14; border-top:1px solid #333; }
-#inp { flex:1; padding:12px; border-radius:20px; border:1px solid #333; background:#1c1a2e; color:#ede8f5; font-size:1rem; outline:none; }
-#btn { padding:12px 20px; border-radius:20px; border:none; background:#9d7fe8; color:white; font-size:1rem; cursor:pointer; }
+#wlc { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; text-align:center; padding:32px 16px; gap:16px; }
+.we { font-size:3rem; }
+#wlc h2 { font-family:'Lora',serif; font-style:italic; font-size:1.5rem; }
+#wlc p { color:var(--muted); font-size:.9rem; line-height:1.6; }
+.chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+.chip { padding:9px 16px; border-radius:20px; border:1px solid #ffffff15; background:#ffffff06; color:var(--muted); font-size:.82rem; cursor:pointer; font-family:'Outfit',sans-serif; }
+
+.msg-user { align-self:flex-end; background:linear-gradient(135deg,#3a2b58,#4d3570); padding:12px 16px; border-radius:18px; border-bottom-right-radius:4px; max-width:85%; font-size:.92rem; line-height:1.6; word-break:break-word; }
+.msg-ai { align-self:flex-start; background:var(--s2); border:1px solid #ffffff08; padding:12px 16px; border-radius:18px; border-bottom-left-radius:4px; max-width:85%; font-size:.92rem; line-height:1.6; word-break:break-word; }
+.etag { font-size:.7rem; color:var(--muted); margin-top:4px; }
+.ts { font-size:.65rem; color:var(--muted); margin-top:2px; }
+.msg-wrap { display:flex; flex-direction:column; }
+.msg-wrap.user { align-items:flex-end; }
+.msg-wrap.ai { align-items:flex-start; }
+
+#typ { display:none; align-self:flex-start; background:var(--s2); padding:14px 18px; border-radius:18px; border-bottom-left-radius:4px; gap:6px; align-items:center; }
+#typ.on { display:flex; }
+.dot { width:7px; height:7px; background:var(--muted); border-radius:50%; animation:bn 1.2s ease-in-out infinite; }
+.dot:nth-child(2){animation-delay:.2s;} .dot:nth-child(3){animation-delay:.4s;}
+@keyframes bn { 0%,60%,100%{transform:translateY(0);opacity:.4;} 30%{transform:translateY(-6px);opacity:1;} }
+
+#bar { display:flex; padding:12px 14px 20px; gap:10px; align-items:center; background:var(--bg); border-top:1px solid #ffffff08; flex-shrink:0; }
+#inp { flex:1; padding:13px 18px; border-radius:24px; border:1px solid #ffffff15; background:var(--s2); color:var(--text); font-size:1rem; font-family:'Outfit',sans-serif; outline:none; }
+#inp::placeholder { color:var(--muted); }
+#btn { width:52px; height:52px; border-radius:50%; border:none; background:linear-gradient(135deg,var(--violet),var(--rose)); color:white; font-size:1.3rem; cursor:pointer; flex-shrink:0; }
+
+#toast { position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--s2); border:1px solid #ffffff15; border-radius:20px; padding:8px 20px; font-size:.82rem; color:var(--muted); opacity:0; transition:opacity .3s; pointer-events:none; z-index:99; white-space:nowrap; }
+#toast.show { opacity:1; }
 </style>
 </head>
 <body>
+
+<header>
+  <div class="av">🌙</div>
+  <div class="hinfo">
+    <h2>Luna</h2>
+    <div id="emo">✨ Neugierig &amp; warm</div>
+  </div>
+  <div class="hact">
+    <button class="ibtn" onclick="clearAll()">🗑</button>
+  </div>
+</header>
+
 <div id="chat">
-  <div class="ai">Hallo! Ich bin Luna. Schreib mir etwas 🌙</div>
+  <div id="wlc">
+    <div class="we">🌙</div>
+    <h2>Schön, dass du da bist!</h2>
+    <p>Ich bin Luna. Ich höre zu und erinnere mich an dich.</p>
+    <div class="chips">
+      <div class="chip" onclick="send('Wie geht es dir heute, Luna?')">Wie geht es dir? 😊</div>
+      <div class="chip" onclick="send('Erzähl mir etwas über dich!')">Wer bist du? 🌙</div>
+      <div class="chip" onclick="send('Ich brauch jemanden zum Reden.')">Zum Reden 💙</div>
+      <div class="chip" onclick="send('Mal mir ein schönes Bild!')">Bild malen 🎨</div>
+    </div>
+  </div>
+  <div id="typ"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
 </div>
+
 <div id="bar">
-  <input id="inp" type="text" placeholder="Schreib etwas...">
-  <button id="btn">Senden</button>
+  <input id="inp" type="text" placeholder="Schreib Luna etwas...">
+  <button id="btn" onclick="send()">➤</button>
 </div>
+
+<div id="toast"></div>
+
 <script>
-var KEY = "tgp_v1_K8o8FroRoRyko6S7e3lYh_RkVQoVWwaHu0wKahwxH1M";
+// ═══════════════════════════════════
+//  NUR HIER DEINE DATEN EINTRAGEN
+// ═══════════════════════════════════
+var KEY  = "tgp_v1_K8o8FroRoRyko6S7e3lYh_RkVQoVWwaHu0wKahwxH1M";
+var NAME = "Udo";
+// ═══════════════════════════════════
 
-function addMsg(role, text) {
-  var d = document.createElement("div");
-  d.className = role;
-  d.textContent = text;
-  document.getElementById("chat").appendChild(d);
-  document.getElementById("chat").scrollTop = 99999;
+var MODELS = [
+  "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "mistralai/Mistral-7B-Instruct-v0.3",
+  "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
+];
+
+var hist = [];
+var mems = [];
+try { hist = JSON.parse(localStorage.getItem("lh") || "[]"); } catch(e) {}
+try { mems = JSON.parse(localStorage.getItem("lm") || "[]"); } catch(e) {}
+
+function getTime() {
+  return new Date().toLocaleTimeString("de-DE", {hour:"2-digit", minute:"2-digit"});
 }
 
-function send() {
+function toast(m) {
+  var el = document.getElementById("toast");
+  el.textContent = m;
+  el.classList.add("show");
+  setTimeout(function(){ el.classList.remove("show"); }, 2500);
+}
+
+function addMsg(role, text, emo) {
+  var w = document.getElementById("wlc");
+  if (w) w.remove();
+
+  var wrap = document.createElement("div");
+  wrap.className = "msg-wrap " + role;
+
+  var bbl = document.createElement("div");
+  bbl.className = "msg-" + role;
+  bbl.innerHTML = text.replace(/\n/g, "<br>");
+  wrap.appendChild(bbl);
+
+  if (role === "ai" && emo) {
+    var et = document.createElement("div");
+    et.className = "etag";
+    et.textContent = emo.e + " " + emo.l;
+    wrap.appendChild(et);
+  }
+
+  var ts = document.createElement("div");
+  ts.className = "ts";
+  ts.textContent = getTime();
+  wrap.appendChild(ts);
+
+  var chat = document.getElementById("chat");
+  chat.insertBefore(wrap, document.getElementById("typ"));
+  chat.scrollTop = 99999;
+}
+
+function addImg(url) {
+  var wrap = document.createElement("div");
+  wrap.className = "msg-wrap ai";
+  var img = document.createElement("img");
+  img.src = url;
+  img.style.cssText = "width:100%;max-width:280px;border-radius:16px;display:block;cursor:pointer;";
+  img.onclick = function(){ window.open(url, "_blank"); };
+  wrap.appendChild(img);
+  var ts = document.createElement("div");
+  ts.className = "ts";
+  ts.textContent = getTime();
+  wrap.appendChild(ts);
+  var chat = document.getElementById("chat");
+  chat.insertBefore(wrap, document.getElementById("typ"));
+  chat.scrollTop = 99999;
+}
+
+function xEmo(t) {
+  if (!t) return null;
+  var m = t.match(/\[EMOTION:([^:]+):([^\]]+)\]/);
+  return m ? {e:m[1], l:m[2]} : null;
+}
+
+function xImg(t) {
+  if (!t) return null;
+  var m = t.match(/\[IMAGE:([^\]]+)\]/);
+  return m ? m[1] : null;
+}
+
+function xMem(t) {
+  if (!t) return;
+  var rx = /\[MEM:([^:]+):([^\]]+)\]/g, m;
+  while ((m = rx.exec(t)) !== null) {
+    var c = m[1].trim(), v = m[2].trim();
+    if (!mems.find(function(x){ return x.c===c && x.v===v; }))
+      mems.push({c:c, v:v});
+  }
+  try { localStorage.setItem("lm", JSON.stringify(mems)); } catch(e) {}
+}
+
+function cln(t) {
+  if (!t) return "";
+  return t.replace(/\[EMOTION:[^\]]+\]/g,"")
+          .replace(/\[MEM:[^\]]+\]/g,"")
+          .replace(/\[IMAGE:[^\]]+\]/g,"")
+          .trim();
+}
+
+function sysPrompt() {
+  var n = (NAME && NAME !== "Du") ? "Name der Person: " + NAME + ". " : "";
+  var m = mems.length ? "Bekanntes: " + mems.map(function(x){ return x.c+": "+x.v; }).join(", ") + ". " : "";
+  return "Du bist Luna, eine warmherzige emotionale KI-Freundin. " + n + m +
+    "Antworte auf Deutsch, locker und herzlich, 2-5 Saetze. " +
+    "Am Ende IMMER genau diesen Tag: [EMOTION:emoji:Gefuehl] z.B. [EMOTION:😊:Gluecklich]. " +
+    "Wenn du etwas Wichtiges lernst: [MEM:Kategorie:Info]. " +
+    "Auf Bildwunsch: [IMAGE:englische Beschreibung]. " +
+    "Du bist offen und gehst auf alle Themen ein.";
+}
+
+var busy = false;
+
+function send(txt) {
   var inp = document.getElementById("inp");
-  var msg = inp.value.trim();
-  if (!msg) return;
+  var msg = txt || inp.value.trim();
+  if (!msg || busy) return;
+  busy = true;
   inp.value = "";
-  addMsg("user", msg);
-  addMsg("ai", "Warte...");
 
-  fetch("https://api.together.xyz/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": "Bearer " + KEY,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-      max_tokens: 200,
-      messages: [
-        {role: "system", content: "Du bist Luna, eine freundliche KI. Antworte kurz auf Deutsch."},
-        {role: "user", content: msg}
-      ]
-    })
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d){
-    var last = document.querySelector(".ai:last-child");
-    if (d.choices && d.choices[0]) {
-      last.textContent = d.choices[0].message.content;
-    } else {
-      last.textContent = "Fehler: " + JSON.stringify(d.error);
+  addMsg("user", msg);
+  hist.push({role:"user", content:msg});
+
+  document.getElementById("typ").classList.add("on");
+  document.getElementById("btn").disabled = true;
+  document.getElementById("chat").scrollTop = 99999;
+
+  var messages = [{role:"system", content:sysPrompt()}].concat(hist.slice(-20));
+  var tried = 0;
+
+  function tryModel() {
+    if (tried >= MODELS.length) {
+      document.getElementById("typ").classList.remove("on");
+      document.getElementById("btn").disabled = false;
+      addMsg("ai", "Fehler: Kein Modell verfuegbar. Bitte Together AI Key pruefen.", {e:"😔", l:"Besorgt"});
+      busy = false;
+      return;
     }
-  })
-  .catch(function(e){
-    document.querySelector(".ai:last-child").textContent = "Netzwerkfehler: " + e.message;
-  });
+    var model = MODELS[tried];
+    tried++;
+
+    fetch("https://api.together.xyz/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({model:model, max_tokens:500, messages:messages})
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.error) { tryModel(); return; }
+      var raw = d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
+      if (!raw) { tryModel(); return; }
+
+      var emo  = xEmo(raw);
+      var text = cln(raw);
+      var imgP = xImg(raw);
+      xMem(raw);
+
+      if (emo) document.getElementById("emo").textContent = emo.e + " " + emo.l;
+      document.getElementById("typ").classList.remove("on");
+      addMsg("ai", text, emo);
+
+      hist.push({role:"assistant", content:raw});
+      try { localStorage.setItem("lh", JSON.stringify(hist.slice(-40))); } catch(e){}
+
+      if (imgP) {
+        toast("Luna malt ein Bild...");
+        fetch("https://api.together.xyz/v1/images/generations", {
+          method: "POST",
+          headers: {"Authorization":"Bearer "+KEY, "Content-Type":"application/json"},
+          body: JSON.stringify({model:"black-forest-labs/FLUX.1-schnell-Free", prompt:imgP, width:512, height:512, steps:4, n:1})
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(d){
+          if (d.data && d.data[0] && d.data[0].url) addImg(d.data[0].url);
+          else if (d.data && d.data[0] && d.data[0].b64_json) addImg("data:image/png;base64,"+d.data[0].b64_json);
+        })
+        .catch(function(){});
+      }
+
+      document.getElementById("btn").disabled = false;
+      busy = false;
+      document.getElementById("chat").scrollTop = 99999;
+    })
+    .catch(function(){ tryModel(); });
+  }
+
+  tryModel();
 }
 
-document.getElementById("btn").onclick = function() { send(); };
+function clearAll() {
+  if (!confirm("Alles loeschen?")) return;
+  hist = []; mems = [];
+  try { localStorage.removeItem("lh"); localStorage.removeItem("lm"); } catch(e){}
+  location.reload();
+}
+
+// Enter key
 document.getElementById("inp").onkeydown = function(e) {
   if (e.key === "Enter") { send(); }
+};
+
+// Load history
+window.onload = function() {
+  if (hist.length) {
+    var w = document.getElementById("wlc");
+    if (w) w.remove();
+    for (var i = 0; i < hist.length; i++) {
+      var m = hist[i];
+      if (m.role === "user") addMsg("user", m.content);
+      else addMsg("ai", cln(m.content), xEmo(m.content));
+    }
+  }
 };
 </script>
 </body>
