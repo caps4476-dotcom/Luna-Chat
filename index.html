@@ -2,14 +2,29 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Luna</title>
+
+<!-- PWA: installierbar als App -->
+<meta name="application-name" content="Luna">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Luna">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0c0c14">
+<meta name="description" content="Luna – deine persönliche KI-Begleiterin">
+<link rel="manifest" href="manifest.json">
+
+<!-- Apple Touch Icon (generiert per Canvas) -->
+<link rel="apple-touch-icon" id="apple-icon" href="">
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;1,400&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 :root { --bg:#0c0c14; --s2:#1c1a2e; --rose:#f4a7b9; --violet:#9d7fe8; --text:#ede8f5; --muted:#7a6e94; }
 body { background:var(--bg); color:var(--text); font-family:'Outfit',sans-serif;
-  display:flex; flex-direction:column; height:100dvh; overflow:hidden; }
+  display:flex; flex-direction:column; height:100dvh; overflow:hidden;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom); }
 
 /* ── HEADER (unchanged from Luna) ── */
 header { display:flex; align-items:center; gap:12px; padding:14px 18px;
@@ -268,8 +283,8 @@ header { display:flex; align-items:center; gap:12px; padding:14px 18px;
 // ═══════════════════════════════════
 //  NUR HIER DEINE DATEN EINTRAGEN
 // ═══════════════════════════════════
-var KEY  = "tgp_v1_K8o8FroRoRyko6S7e3lYh_RkVQoVWwaHu0wKahwxH1M";
-var NAME = "Udo";
+var KEY  = "DEIN_TOGETHER_AI_KEY";
+var NAME = "Du";
 // ═══════════════════════════════════
 
 var MODELS = [
@@ -601,6 +616,154 @@ function clearAll() {
 document.getElementById("inp").onkeydown = function(e) {
   if (e.key==="Enter") send();
 };
+
+// ═══════════════════════════════════════════
+//  PWA – Service Worker + App Icon + Install
+// ═══════════════════════════════════════════
+
+// Generate app icon as canvas → PNG (purple moon on dark background)
+function generateIcon(size) {
+  var c = document.createElement("canvas");
+  c.width = c.height = size;
+  var x = c.getContext("2d");
+  // Background
+  var bg = x.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);
+  bg.addColorStop(0,"#1c1a2e"); bg.addColorStop(1,"#0c0c14");
+  x.fillStyle = bg; x.fillRect(0,0,size,size);
+  // Glow
+  var gl = x.createRadialGradient(size/2,size/2,0,size/2,size/2,size*.45);
+  gl.addColorStop(0,"rgba(157,127,232,.35)"); gl.addColorStop(1,"rgba(157,127,232,0)");
+  x.fillStyle = gl; x.fillRect(0,0,size,size);
+  // Stars
+  x.fillStyle = "rgba(255,255,255,.7)";
+  var stars = [[.18,.22,.8],[.75,.18,.9],[.82,.7,.7],[.12,.78,.8],[.65,.82,.6],[.88,.38,.75]];
+  stars.forEach(function(s) {
+    var r = s[2]*size*.012;
+    x.beginPath(); x.arc(s[0]*size,s[1]*size,r,0,Math.PI*2); x.fill();
+  });
+  // Moon crescent
+  var cx=size*.5, cy=size*.48, r=size*.28;
+  x.fillStyle = "#9d7fe8";
+  x.beginPath(); x.arc(cx,cy,r,0,Math.PI*2); x.fill();
+  // Cut out for crescent
+  x.fillStyle = "#13102a";
+  x.beginPath(); x.arc(cx+r*.32,cy-r*.08,r*.82,0,Math.PI*2); x.fill();
+  // Inner glow on moon
+  x.fillStyle = "rgba(244,167,185,.18)";
+  x.beginPath(); x.arc(cx-r*.15,cy-r*.2,r*.35,0,Math.PI*2); x.fill();
+  // "L" letter subtle
+  x.fillStyle = "rgba(255,255,255,.55)";
+  x.font = "bold " + Math.round(size*.22) + "px serif";
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText("L", cx-r*.1, cy+r*.08);
+  // Bottom text
+  x.fillStyle = "rgba(244,167,185,.6)";
+  x.font = Math.round(size*.1) + "px sans-serif";
+  x.textAlign = "center";
+  x.fillText("Luna", size/2, size*.88);
+  return c.toDataURL("image/png");
+}
+
+// Set Apple touch icon
+var icon192 = generateIcon(192);
+var icon512 = generateIcon(512);
+document.getElementById("apple-icon").href = icon192;
+
+// Store icons for service worker / manifest
+try { sessionStorage.setItem("luna_icon192", icon192); } catch(e) {}
+
+// Register Service Worker
+if ("serviceWorker" in navigator) {
+  // Create SW blob dynamically
+  var swCode = [
+    "var CACHE = 'luna-v1';",
+    "var OFFLINE = ['/'];",
+    "self.addEventListener('install', function(e) {",
+    "  e.waitUntil(caches.open(CACHE).then(function(c) { return c.addAll(OFFLINE); }));",
+    "  self.skipWaiting();",
+    "});",
+    "self.addEventListener('activate', function(e) {",
+    "  e.waitUntil(clients.claim());",
+    "});",
+    "self.addEventListener('fetch', function(e) {",
+    "  e.respondWith(",
+    "    caches.match(e.request).then(function(r) {",
+    "      return r || fetch(e.request).catch(function() {",
+    "        return caches.match('/');",
+    "      });",
+    "    })",
+    "  );",
+    "});"
+  ].join("\n");
+  var swBlob = new Blob([swCode], {type:"application/javascript"});
+  var swUrl  = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl).catch(function(){});
+}
+
+// ── Install prompt banner ──
+var deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallBanner();
+});
+
+function showInstallBanner() {
+  if (document.getElementById("install-banner")) return;
+  var banner = document.createElement("div");
+  banner.id = "install-banner";
+  banner.innerHTML =
+    "<span>📲 Luna als App speichern?</span>" +
+    "<button onclick='installApp()'>Installieren</button>" +
+    "<button onclick='this.parentElement.remove()' style='background:none;color:var(--muted);border:none'>✕</button>";
+  banner.style.cssText = [
+    "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);",
+    "background:#1c1a2e;border:1px solid rgba(157,127,232,.4);",
+    "border-radius:16px;padding:10px 14px;display:flex;gap:10px;",
+    "align-items:center;font-size:.8rem;z-index:999;",
+    "box-shadow:0 8px 28px rgba(0,0,0,.5);white-space:nowrap;"
+  ].join("");
+  banner.querySelector("button").style.cssText =
+    "background:linear-gradient(135deg,#9d7fe8,#f4a7b9);border:none;" +
+    "border-radius:10px;padding:6px 14px;color:white;font-size:.78rem;cursor:pointer;";
+  document.body.appendChild(banner);
+  setTimeout(function() { if (banner.parentElement) banner.remove(); }, 12000);
+}
+
+function installApp() {
+  var banner = document.getElementById("install-banner");
+  if (banner) banner.remove();
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(r) {
+      if (r.outcome === "accepted") toast("Luna wurde installiert! 🎉");
+      deferredPrompt = null;
+    });
+  }
+}
+
+// iOS: show manual instructions (iOS doesn't support beforeinstallprompt)
+var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+var isStandalone = window.navigator.standalone === true;
+if (isIOS && !isStandalone) {
+  setTimeout(function() {
+    var tip = document.createElement("div");
+    tip.style.cssText = [
+      "position:fixed;bottom:80px;left:12px;right:12px;",
+      "background:#1c1a2e;border:1px solid rgba(157,127,232,.4);",
+      "border-radius:16px;padding:12px 14px;font-size:.78rem;",
+      "color:var(--muted);z-index:999;line-height:1.6;",
+      "box-shadow:0 8px 28px rgba(0,0,0,.5);"
+    ].join("");
+    tip.innerHTML =
+      "<div style='color:var(--rose);font-weight:600;margin-bottom:4px'>📲 Luna als App speichern (iOS)</div>" +
+      "Tippe auf <strong>⎋ Teilen</strong> → <strong>Zum Home-Bildschirm</strong> → <strong>Hinzufügen</strong>" +
+      "<br><span style='font-size:.7rem'>Dann öffnet Luna sich wie eine echte App!</span>" +
+      "<button onclick='this.parentElement.remove()' style='float:right;background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;margin-top:-20px'>✕</button>";
+    document.body.appendChild(tip);
+    setTimeout(function() { if (tip.parentElement) tip.remove(); }, 14000);
+  }, 2500);
+}
 
 window.onload = function() {
   loadPhoto();
