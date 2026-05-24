@@ -454,7 +454,7 @@ async function send(txt) {
     const msgs = [{ role: 'system', content: sysPrompt() }, ...history.slice(-20)];
     const raw = await tryRequest(msgs);
     const emotion = extractEmotion(raw);
-    const text    = cleanImage(clean(raw));
+    const text    = clean(raw).replace(/\[IMAGE:[^\]]+\]/g, '').trim();
 
     extractMem(raw);
     updateEmotion(emotion);
@@ -502,6 +502,57 @@ function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Image Generation ─────────────────────────────
+function extractImagePrompt(txt) {
+  if (!txt || typeof txt !== "string") return null;
+  var m = txt.match(/\[IMAGE:([^\]]+)\]/);
+  return m ? m[1].trim() : null;
+}
+
+function appendImage(url) {
+  var typing = document.getElementById("typing");
+  var wrap = document.createElement("div");
+  wrap.className = "msg ai";
+  var time = new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+  var img = document.createElement("img");
+  img.src = url;
+  img.style = "width:100%;display:block;border-radius:16px;cursor:pointer";
+  img.onclick = function(){ window.open(url,"_blank"); };
+  var imgWrap = document.createElement("div");
+  imgWrap.style = "border-radius:16px;overflow:hidden;max-width:280px;border:1px solid #ffffff10";
+  imgWrap.appendChild(img);
+  var ts = document.createElement("div");
+  ts.className = "ts";
+  ts.textContent = time;
+  wrap.appendChild(imgWrap);
+  wrap.appendChild(ts);
+  document.getElementById("chat").insertBefore(wrap, typing);
+  document.getElementById("chat").scrollTop = 999999;
+}
+
+async function generateImage(prompt) {
+  if (!TOGETHER_KEY) return null;
+  try {
+    var res = await fetch("https://api.together.xyz/v1/images/generations", {
+      method: "POST",
+      headers: {
+        "Authorization": "Bearer " + TOGETHER_KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "black-forest-labs/FLUX.1-schnell-Free",
+        prompt: prompt,
+        width: 512, height: 512, steps: 4, n: 1
+      })
+    });
+    var data = await res.json();
+    if (data.data && data.data[0] && data.data[0].url) return data.data[0].url;
+    if (data.data && data.data[0] && data.data[0].b64_json) return "data:image/png;base64," + data.data[0].b64_json;
+    console.warn("Image API:", JSON.stringify(data));
+    return null;
+  } catch(e) { console.warn("Image error:", e); return null; }
 }
 
 // ── Auto-login ─────────────────────────────────
