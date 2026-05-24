@@ -291,6 +291,7 @@ function clearAll() {
 
 // ── Emotion ────────────────────────────────────
 function extractEmotion(txt) {
+  if (!txt || typeof txt !== 'string') return { em: '💜', label: 'Nachdenklich' };
   const m = txt.match(/\[EMOTION:([^:]+):([^\]]+)\]/);
   return m ? { em: m[1], label: m[2] } : { em: '💜', label: 'Nachdenklich' };
 }
@@ -309,6 +310,7 @@ function spawnFloat(em) {
 }
 
 function clean(txt) {
+  if (!txt || typeof txt !== 'string') return '';
   return txt.replace(/\[EMOTION:[^\]]+\]/g, '').replace(/\[MEM:[^\]]+\]/g, '').trim();
 }
 
@@ -375,7 +377,8 @@ async function send(txt) {
     const data = await res.json();
     if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
 
-    const raw     = data.choices[0].message.content;
+    const raw     = (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) ? data.choices[0].message.content : '';
+    if (!raw) throw new Error('Leere Antwort vom Modell');
     const emotion = extractEmotion(raw);
     const text    = clean(raw);
 
