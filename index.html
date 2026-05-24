@@ -164,7 +164,7 @@ textarea::placeholder{color:var(--muted)}
       <input type="text" id="userName" placeholder="Wie soll ich dich nennen?" maxlength="30">
       <div class="field-label">Together AI Key <span style="color:#34d399;font-size:.7rem">(für Bilder – optional)</span></div>
       <input type="password" id="togetherKey" placeholder="sk-... (together.ai)" autocomplete="off">
-      <button class="btn-primary" onclick="startChat()">✨ Luna treffen</button>
+      <button class="btn-primary" onclick="startChat(true)">✨ Luna treffen</button>
       <p class="setup-hint">
         Kostenlos registrieren: <a href="https://openrouter.ai" target="_blank">openrouter.ai</a><br>
         Dein Key bleibt nur auf deinem Gerät.
@@ -224,9 +224,19 @@ textarea::placeholder{color:var(--muted)}
 
 <script>
 // ── State ──────────────────────────────────────
-let OR_KEY       = '';
-let USER_NAME    = '';
-let TOGETHER_KEY = '';
+// ═══════════════════════════════════════════
+//  🔑 DEINE KEYS – nur einmal eintragen!
+// ═══════════════════════════════════════════
+const CONFIG = {
+  openrouter:  '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',   // sk-or-v1-...
+  together:    'tgp_v1_K8o8FroRoRyko6S7e3lYh_RkVQoVWwaHu0wKahwxH1M',     // together.ai key (für Bilder)
+  userName:    'Udo'                     // Dein Name (optional)
+};
+// ═══════════════════════════════════════════
+
+let OR_KEY       = CONFIG.openrouter;
+let USER_NAME    = CONFIG.userName;
+let TOGETHER_KEY = CONFIG.together;
 let history      = [];
 let memories     = [];
 
@@ -262,25 +272,31 @@ Nutze Erinnerungen aktiv: "Du hast doch mal gesagt, dass..."${mems}`;
 }
 
 // ── Setup ──────────────────────────────────────
-function startChat() {
-  const key  = document.getElementById('orKey').value.trim();
-  const name = document.getElementById('userName').value.trim();
-  if (!key.startsWith('sk-')) {
-    document.getElementById('orKey').style.borderColor = '#ff6b6b';
-    showToast('❌ Key muss mit sk- beginnen');
-    return;
+function startChat(fromManual) {
+  // If called manually from setup form
+  if (fromManual) {
+    const key  = document.getElementById('orKey').value.trim();
+    const name = document.getElementById('userName').value.trim();
+    if (!key.startsWith('sk-')) {
+      document.getElementById('orKey').style.borderColor = '#ff6b6b';
+      showToast('❌ Key muss mit sk- beginnen');
+      return;
+    }
+    OR_KEY    = key;
+    USER_NAME = name || CONFIG.userName;
+    localStorage.setItem('luna_key',  key);
+    localStorage.setItem('luna_name', name);
+    const tKey = document.getElementById('togetherKey').value.trim();
+    if (tKey) { TOGETHER_KEY = tKey; localStorage.setItem('luna_together', tKey); }
+  } else {
+    // Use saved or config keys
+    OR_KEY       = localStorage.getItem('luna_key')      || CONFIG.openrouter;
+    USER_NAME    = localStorage.getItem('luna_name')     || CONFIG.userName;
+    TOGETHER_KEY = localStorage.getItem('luna_together') || CONFIG.together;
   }
-  OR_KEY    = key;
-  USER_NAME = name;
-  localStorage.setItem('luna_key',  key);
-  localStorage.setItem('luna_name', name);
-  const tKey = document.getElementById('togetherKey').value.trim();
-  if (tKey) localStorage.setItem('luna_together', tKey);
 
-  // Load saved data
   history  = JSON.parse(localStorage.getItem('luna_history')  || '[]');
   memories = JSON.parse(localStorage.getItem('luna_memories') || '[]');
-  TOGETHER_KEY = localStorage.getItem('luna_together') || '';
 
   document.getElementById('setupScreen').style.display = 'none';
   const cs = document.getElementById('chatScreen');
@@ -292,6 +308,8 @@ function startChat() {
 
 function logout() {
   localStorage.removeItem('luna_key');
+  localStorage.removeItem('luna_together');
+  localStorage.removeItem('luna_name');
   location.reload();
 }
 
@@ -558,11 +576,11 @@ async function generateImage(prompt) {
 // ── Auto-login ─────────────────────────────────
 window.addEventListener('load', () => {
   const saved = localStorage.getItem('luna_key');
-  if (saved) {
-    document.getElementById('orKey').value = saved;
-    document.getElementById('userName').value = localStorage.getItem('luna_name') || '';
-    const tk = localStorage.getItem('luna_together');
-    if (tk) document.getElementById('togetherKey').value = tk;
+  // Auto-start: use config keys if no manual key saved, or saved key
+  const hasConfigKey = CONFIG.openrouter && !CONFIG.openrouter.includes('DEIN_');
+  const hasSavedKey  = saved && saved.startsWith('sk-');
+  if (hasConfigKey || hasSavedKey) {
+    document.getElementById('setupScreen').style.display = 'none';
     startChat();
   }
 });
