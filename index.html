@@ -13,26 +13,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0c0c14">
 <meta name="description" content="Luna – deine persönliche KI-Begleiterin">
-<link rel="manifest" id="pwa-manifest">
-<script>
-// Manifest inline als Data-URI – keine separate Datei nötig
-var manifest = {
-  "name": "Luna",
-  "short_name": "Luna",
-  "description": "Luna – deine persönliche KI-Begleiterin",
-  "start_url": "./",
-  "display": "standalone",
-  "background_color": "#0c0c14",
-  "theme_color": "#0c0c14",
-  "orientation": "portrait",
-  "icons": [
-    {"src": "data:image/png;base64,iVBORw0KGgo=", "sizes": "192x192", "type": "image/png"},
-    {"src": "data:image/png;base64,iVBORw0KGgo=", "sizes": "512x512", "type": "image/png"}
-  ]
-};
-var blob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
-document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
-</script>
+<!-- PWA ohne separate manifest.json -->
+<meta name="mobile-web-app-capable" content="yes">
 
 <!-- Apple Touch Icon (generiert per Canvas) -->
 <link rel="apple-touch-icon" id="apple-icon" href="">
@@ -302,14 +284,16 @@ header { display:flex; align-items:center; gap:12px; padding:14px 18px;
 // ═══════════════════════════════════
 //  NUR HIER DEINE DATEN EINTRAGEN
 // ═══════════════════════════════════
-var KEY  = "tgp_v1_K8o8FroRoRyko6S7e3lYh_RkVQoVWwaHu0wKahwxH1M";
-var NAME = "Udo";
+var KEY  = "DEIN_TOGETHER_AI_KEY";
+var NAME = "Du";
 // ═══════════════════════════════════
 
 var MODELS = [
   "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+  "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo",
+  "meta-llama/Llama-3.3-70B-Instruct-Turbo-Free",
   "mistralai/Mistral-7B-Instruct-v0.3",
-  "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
+  "Qwen/Qwen2.5-7B-Instruct-Turbo"
 ];
 
 var hist = [];
@@ -787,6 +771,12 @@ if (isIOS && !isStandalone) {
 window.onload = function() {
   loadPhoto();
   setVisualEmotion("neutral");
+  // Test API key on startup
+  if (KEY === "DEIN_TOGETHER_AI_KEY" || KEY.length < 10) {
+    setTimeout(function() {
+      showLunaBubble("⚠️ Bitte den API-Key eintragen!", 8000);
+    }, 1500);
+  }
   if (hist.length) {
     var w = document.getElementById("wlc"); if (w) w.remove();
     for (var i=0;i<hist.length;i++) {
