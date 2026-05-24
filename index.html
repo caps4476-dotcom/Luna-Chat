@@ -61,10 +61,10 @@ header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:lin
 .iw:focus-within{border-color:#9d7fe840;box-shadow:0 0 0 3px #9d7fe810}
 textarea{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:"Outfit",sans-serif;font-size:.91rem;resize:none;max-height:110px;line-height:1.5;padding:9px 8px 9px 0;overflow-y:auto}
 textarea::placeholder{color:var(--muted)}
-#vBtn{width:42px;height:42px;border-radius:50%;border:1px solid #ffffff15;background:var(--s2);color:var(--muted);cursor:pointer;font-size:1.1rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+#vBtn{width:52px;height:52px;border-radius:50%;border:1px solid #ffffff15;background:var(--s2);color:var(--muted);cursor:pointer;font-size:1.1rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 #vBtn.lst{background:linear-gradient(135deg,#ff6b6b,#f4a7b9);color:white;border-color:transparent;animation:vp 1s ease-in-out infinite}
 @keyframes vp{0%,100%{box-shadow:0 0 0 0 #ff6b6b44}50%{box-shadow:0 0 0 10px #ff6b6b00}}
-#sBtn{width:42px;height:42px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--violet),var(--rose));color:#fff;cursor:pointer;font-size:1rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s}
+#sBtn{width:52px;height:52px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--violet),var(--rose));color:#fff;cursor:pointer;font-size:1.2rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 #sBtn:hover{transform:scale(1.08);filter:brightness(1.1)}
 #sBtn:disabled{opacity:.35;cursor:not-allowed;transform:none;filter:none}
 .spk{animation:sg .8s ease-in-out infinite alternate}
@@ -111,7 +111,7 @@ textarea::placeholder{color:var(--muted)}
   <div id="ibar">
     <div class="iw"><textarea id="inp" placeholder="Schreib Luna etwas…" rows="1" onkeydown="onKey(event)" oninput="rsz(this)"></textarea></div>
     <button id="vBtn" onclick="togV()">🎤</button>
-    <button id="sBtn" onclick="send()">➤</button>
+    <button id="sBtn" onclick="send()" ontouchend="send()">➤</button>
   </div>
 </div>
 <script>
@@ -119,8 +119,8 @@ textarea::placeholder{color:var(--muted)}
 //  🔑 NUR HIER DEINE DATEN EINTRAGEN
 // ═══════════════════════════════════
 var CFG = {
-  key:  "tgp_v1_K8o8FroRoRyko6S7e3lYh_RkVQoVWwaHu0wKahwxH1M",  // ← Together AI Key eintragen
-  name: "Udo"                     // ← Deinen Namen eintragen
+  key:  "DEIN_TOGETHER_AI_KEY",  // ← Together AI Key eintragen
+  name: "Du"                     // ← Deinen Namen eintragen
 };
 // ═══════════════════════════════════
 
