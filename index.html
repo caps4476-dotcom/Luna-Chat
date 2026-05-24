@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luna – Deine KI-Freundin</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, arrayUnion, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+// ═══════════════════════════════════════════════════════
+//  🔧 HIER DEINE ZUGANGSDATEN EINTRAGEN
+// ═══════════════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey:            "DEIN_FIREBASE_API_KEY",
+  authDomain:        "DEIN_PROJEKT.firebaseapp.com",
+  projectId:         "DEIN_PROJEKT_ID",
+  storageBucket:     "DEIN_PROJEKT.appspot.com",
+  messagingSenderId: "DEINE_SENDER_ID",
+  appId:             "DEINE_APP_ID"
+};
+
+const OPENROUTER_KEY = "DEIN_OPENROUTER_KEY"; // sk-or-v1-...
+const USER_ID = "user_main"; // Für mehrere Nutzer: anpassen
+// ═══════════════════════════════════════════════════════
+
+// Init Firebase
+const app  = initializeApp(FIREBASE_CONFIG);
+const db   = getFirestore(app);
+
+// Globale Refs
+let conversationHistory = [];
+let memories = [];
+
+// ─── Firebase: Daten laden ───────────────────────────
+async function loadFromFirebase() {
+  try {
+    const snap = await getDoc(doc(db, "luna_users", USER_ID));
+    if (snap.exists()) {
+      const data = snap.data();
+      conversationHistory = data.history   || [];
+      memories            = data.memories  || [];
+    }
+    window._lunaReady(conversationHistory, memories);
+  } catch(e) {
+    console.warn("Firebase load error:", e);
+    window._lunaReady([], []);
+  }
+}
+
+// ─── Firebase: Speichern ─────────────────────────────
+async function saveToFirebase(history, mems) {
+  try {
+    await setDoc(doc(db, "luna_users", USER_ID), {
+      history:   history.slice(-60),
+      memories:  mems,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  } catch(e) {
+    console.warn("Firebase save error:", e);
+  }
+}
+
+// ─── OpenRouter API Call ─────────────────────────────
+async function callAI(systemPrompt, messages) {
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENROUTER_KEY}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": window.location.href,
+      "X-Title": "Luna Chat"
+    },
+    body: JSON.stringify({
+      model: "google/gemini-2.0-flash-001",
+      max_tokens: 600,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages
+      ]
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  return data.choices[0].message.content;
+}
+
+// Globale Funktionen für HTML-Teil
+window._fb = { loadFromFirebase, saveToFirebase, callAI };
+window._fbReady = true;
+loadFromFirebase();
+</script>
+
+<style>
+:root {
+  --bg:       #0c0c14;
+  --s1:       #13121f;
+  --s2:       #1c1a2e;
+  --s3:       #252340;
+  --rose:     #f4a7b9;
+  --violet:   #9d7fe8;
+  --teal:     #5ecec8;
+  --text:     #ede8f5;
+  --muted:    #7a6e94;
+  --r:        18px;
+}
+
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  overflow: hidden;
+}
+
+/* ── Grain overlay ── */
+body::after {
+  content:'';
+  position:fixed; inset:0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none; z-index:1000; opacity:.5;
+}
+
+/* ── Ambient glow ── */
+.glow {
+  position:fixed; border-radius:50%; filter:blur(80px);
+  pointer-events:none; z-index:0;
+}
+.glow-a { width:500px;height:500px;top:-200px;left:-100px;background:#9d7fe815; animation:glowDrift 14s ease-in-out infinite alternate; }
+.glow-b { width:400px;height:400px;bottom:-150px;right:-80px;background:#f4a7b910; animation:glowDrift 18s ease-in-out infinite alternate-reverse; }
+@keyframes glowDrift {
+  from { transform: translate(0,0) scale(1); }
+  to   { transform: translate(40px,30px) scale(1.15); }
+}
+
+/* ── App shell ── */
+#app {
+  position:relative; z-index:1;
+  height:100dvh;
+  display:flex; flex-direction:column;
+  max-width:640px; margin:0 auto;
+}
+
+/* ── Setup screen ── */
+#setupScreen {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  padding:24px;
+}
+
+.setup-card {
+  background:var(--s1);
+  border:1px solid #ffffff0c;
+  border-radius:28px;
+  padding:36px 32px;
+  max-width:440px; width:100%;
+  animation: cardIn .5s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+@keyframes cardIn {
+  from { opacity:0; transform:translateY(30px) scale(.95); }
+  to   { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.setup-card .luna-logo {
+  font-size:3rem; text-align:center; margin-bottom:16px;
+  animation:float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-8px)}
+}
+
+.setup-card h1 {
+  font-family:'Lora',serif; font-style:italic; font-size:1.7rem;
+  text-align:center; color:var(--rose); margin-bottom:6px;
+}
+
+.setup-card .sub {
+  text-align:center; color:var(--muted); font-size:.88rem;
+  line-height:1.6; margin-bottom:28px;
+}
+
+.field-label {
+  font-size:.75rem; font-weight:500; color:var(--muted);
+  text-transform:uppercase; letter-spacing:.06em;
+  margin-bottom:6px;
+}
+
+.setup-card input {
+  width:100%; padding:12px 16px;
+  border-radius:14px;
+  border:1px solid #ffffff10;
+  background:var(--s2);
+  color:var(--text);
+  font-family:'Outfit',sans-serif; font-size:.92rem;
+  outline:none; margin-bottom:16px;
+  transition:border-color .2s, box-shadow .2s;
+}
+
+.setup-card input:focus {
+  border-color:#9d7fe860;
+  box-shadow:0 0 0 3px #9d7fe818;
+}
+
+.setup-card input::placeholder { color:var(--muted); }
+
+.btn-primary {
+  width:100%; padding:14px;
+  border-radius:14px; border:none;
+  background:linear-gradient(135deg,var(--violet),var(--rose));
+  color:#fff; font-family:'Outfit',sans-serif;
+  font-size:.95rem; font-weight:500;
+  cursor:pointer;
+  transition:all .2s;
+  position:relative; overflow:hidden;
+}
+
+.btn-primary::after {
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,#ffffff22,transparent);
+  opacity:0;transition:opacity .2s;
+}
+
+.btn-primary:hover::after { opacity:1; }
+.btn-primary:hover { transform:translateY(-1px); box-shadow:0 8px 24px #9d7fe840; }
+.btn-primary:active { transform:translateY(0); }
+
+.setup-hint {
+  text-align:center; color:var(--muted); font-size:.75rem;
+  margin-top:14px; line-height:1.6;
+}
+
+.setup-hint a { color:var(--rose); text-decoration:none; }
+
+/* ── Header ── */
+header {
+  display:flex; align-items:center; gap:12px;
+  padding:14px 18px;
+  background:linear-gradient(180deg,#0c0c14 0%,transparent 100%);
+  border-bottom:1px solid #ffffff08;
+  backdrop-filter:blur(16px);
+  position:relative; z-index:10;
+}
+
+.av {
+  width:44px;height:44px; border-radius:50%;
+  background:linear-gradient(135deg,var(--violet),var(--rose),var(--teal));
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem; flex-shrink:0;
+  animation:avatarPulse 4s ease-in-out infinite;
+  position:relative;
+}
+
+@keyframes avatarPulse {
+  0%,100%{box-shadow:0 0 0 0 #9d7fe840}
+  50%{box-shadow:0 0 0 10px #9d7fe800}
+}
+
+.av-dot {
+  position:absolute;bottom:1px;right:1px;
+  width:10px;height:10px;background:#34d399;
+  border-radius:50%;border:2px solid var(--bg);
+}
+
+.hinfo h2 {
+  font-family:'Lora',serif; font-size:1rem; font-weight:600;
+  color:var(--text);
+}
+
+#emotionBadge {
+  font-size:.7rem; color:var(--rose);
+  display:flex;align-items:center;gap:3px;
+  transition:all .4s ease;
+}
+
+.hactions { margin-left:auto; display:flex;gap:6px; }
+
+.ibtn {
+  width:34px;height:34px;border-radius:50%;
+  border:1px solid #ffffff0d; background:#ffffff07;
+  color:var(--muted); cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem; transition:all .2s;
+}
+.ibtn:hover { background:#ffffff12;color:var(--text); transform:scale(1.05); }
+
+/* ── Memory panel ── */
+#memPanel {
+  position:fixed;top:0;right:-310px;
+  width:310px;height:100%;
+  background:#0e0d1b;
+  border-left:1px solid #ffffff0a;
+  z-index:200; padding:24px 18px;
+  transition:right .3s cubic-bezier(.4,0,.2,1);
+  overflow-y:auto;
+}
+
+#memPanel.open { right:0; }
+
+#memPanel h3 {
+  font-family:'Lora',serif; font-style:italic;
+  color:var(--rose); font-size:1rem;
+  margin-bottom:16px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+
+#memPanel h3 button {
+  background:none;border:none;color:var(--muted);
+  cursor:pointer;font-size:1.1rem;
+}
+
+.mem-item {
+  background:var(--s2);border-radius:12px;
+  padding:10px 14px;margin-bottom:8px;
+  font-size:.81rem;color:var(--muted);
+  border-left:3px solid var(--violet);
+  line-height:1.5;
+}
+
+.mem-item strong {
+  display:block;color:var(--text);
+  font-size:.7rem;text-transform:uppercase;
+  letter-spacing:.05em;margin-bottom:2px;
+}
+
+.mem-save-note {
+  font-size:.72rem;color:var(--muted);
+  text-align:center;margin-top:12px;
+  display:flex;align-items:center;justify-content:center;gap:4px;
+}
+
+#clearBtn {
+  margin-top:16px;width:100%;
+  padding:10px;border-radius:10px;
+  border:1px solid #ff6b6b30;background:#ff6b6b0e;
+  color:#ff6b6b;cursor:pointer;
+  font-family:'Outfit',sans-serif;font-size:.83rem;
+  transition:all .2s;
+}
+
+#clearBtn:hover { background:#ff6b6b20; }
+
+/* ── Chat area ── */
+#chat {
+  flex:1;overflow-y:auto;
+  padding:16px;
+  display:flex;flex-direction:column;gap:10px;
+  scroll-behavior:smooth;
+}
+
+#chat::-webkit-scrollbar { width:4px; }
+#chat::-webkit-scrollbar-thumb { background:#ffffff12;border-radius:2px; }
+
+/* ── Welcome ── */
+#welcome {
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  flex:1;text-align:center;padding:32px 16px;
+  gap:14px;
+}
+
+.wlc-emoji { font-size:3rem;animation:float 3s ease-in-out infinite; }
+
+#welcome h2 {
+  font-family:'Lora',serif;font-style:italic;
+  font-size:1.5rem;color:var(--text);
+}
+
+#welcome p { color:var(--muted);font-size:.88rem;line-height:1.6;max-width:270px; }
+
+.chips {
+  display:flex;flex-wrap:wrap;gap:8px;
+  justify-content:center;margin-top:4px;
+}
+
+.chip {
+  padding:8px 15px;border-radius:20px;
+  border:1px solid #ffffff12;background:#ffffff06;
+  color:var(--muted);font-size:.8rem;cursor:pointer;
+  transition:all .2s;font-family:'Outfit',sans-serif;
+}
+
+.chip:hover {
+  background:#ffffff10;color:var(--text);
+  border-color:var(--violet);transform:translateY(-2px);
+}
+
+/* ── Messages ── */
+.msg {
+  display:flex;flex-direction:column;
+  max-width:84%;
+  animation:msgIn .3s cubic-bezier(.34,1.56,.64,1) both;
+}
+
+@keyframes msgIn {
+  from{opacity:0;transform:translateY(10px) scale(.96)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+
+.msg.user { align-self:flex-end;align-items:flex-end; }
+.msg.ai   { align-self:flex-start;align-items:flex-start; }
+
+.bubble {
+  padding:11px 15px;border-radius:var(--r);
+  font-size:.91rem;line-height:1.6;word-break:break-word;
+}
+
+.msg.user .bubble {
+  background:linear-gradient(135deg,#3a2b58,#4d3570);
+  border-bottom-right-radius:5px;color:var(--text);
+}
+
+.msg.ai .bubble {
+  background:var(--s2);
+  border:1px solid #ffffff08;
+  border-bottom-left-radius:5px;color:var(--text);
+}
+
+.emot-tag {
+  font-size:.68rem;color:var(--muted);
+  margin-top:3px;display:flex;align-items:center;gap:3px;
+  padding:0 4px;
+}
+
+.ts {
+  font-size:.62rem;color:var(--muted);
+  margin-top:2px;padding:0 4px;
+}
+
+/* ── Typing ── */
+#typing {
+  display:none;align-self:flex-start;
+  padding:13px 16px;
+  background:var(--s2);
+  border:1px solid #ffffff08;
+  border-radius:var(--r);border-bottom-left-radius:5px;
+  gap:5px;align-items:center;
+}
+
+#typing.on { display:flex; animation:msgIn .3s ease both; }
+
+.dot {
+  width:7px;height:7px;background:var(--muted);
+  border-radius:50%;
+  animation:bounce 1.2s ease-in-out infinite;
+}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+
+@keyframes bounce {
+  0%,60%,100%{transform:translateY(0);opacity:.4}
+  30%{transform:translateY(-6px);opacity:1}
+}
+
+/* ── Input ── */
+#inputBar {
+  padding:12px 14px;
+  background:linear-gradient(0deg,#0c0c14 60%,transparent);
+  display:flex;gap:10px;align-items:flex-end;
+  position:relative;z-index:10;
+}
+
+.inputWrap {
+  flex:1;
+  background:var(--s2);
+  border:1px solid #ffffff0d;
+  border-radius:24px;
+  display:flex;align-items:flex-end;
+  padding:4px 4px 4px 16px;
+  transition:border-color .2s,box-shadow .2s;
+}
+
+.inputWrap:focus-within {
+  border-color:#9d7fe840;
+  box-shadow:0 0 0 3px #9d7fe810;
+}
+
+textarea {
+  flex:1;background:none;border:none;outline:none;
+  color:var(--text);font-family:'Outfit',sans-serif;
+  font-size:.91rem;resize:none;max-height:110px;
+  line-height:1.5;padding:9px 8px 9px 0;overflow-y:auto;
+}
+
+textarea::placeholder { color:var(--muted); }
+
+#sendBtn {
+  width:42px;height:42px;border-radius:50%;border:none;
+  background:linear-gradient(135deg,var(--violet),var(--rose));
+  color:#fff;cursor:pointer;font-size:1rem;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+
+#sendBtn:hover { transform:scale(1.08);filter:brightness(1.1); }
+#sendBtn:active { transform:scale(.94); }
+#sendBtn:disabled { opacity:.35;cursor:not-allowed;transform:none;filter:none; }
+
+/* ── Floating emotion ── */
+@keyframes efloat {
+  from{transform:translateY(0) scale(1);opacity:1}
+  to{transform:translateY(-70px) scale(1.5);opacity:0}
+}
+.ef {
+  position:fixed;pointer-events:none;z-index:999;
+  font-size:1.6rem;animation:efloat 1.2s ease-out forwards;
+}
+
+/* ── Status toast ── */
+#toast {
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%);
+  background:var(--s2);border:1px solid #ffffff10;
+  border-radius:20px;padding:8px 18px;
+  font-size:.8rem;color:var(--muted);
+  opacity:0;transition:opacity .3s;pointer-events:none;z-index:300;
+}
+#toast.show { opacity:1; }
+
+@media(max-width:480px){
+  .msg{max-width:92%}
+  .setup-card{padding:28px 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- Glows -->
+<div class="glow glow-a"></div>
+<div class="glow glow-b"></div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- App -->
+<div id="app">
+
+  <!-- ════ SETUP SCREEN ════ -->
+  <div id="setupScreen">
+    <div class="setup-card">
+      <div class="luna-logo">🌙</div>
+      <h1>Ich bin Luna</h1>
+      <p class="sub">Deine emotionale KI-Freundin.<br>Gib deinen OpenRouter API Key ein – dann legen wir los.</p>
+
+      <div class="field-label">OpenRouter API Key</div>
+      <input type="password" id="orKey" placeholder="sk-or-v1-..." autocomplete="off">
+
+      <div class="field-label">Dein Name (optional)</div>
+      <input type="text" id="userName" placeholder="Wie soll ich dich nennen?" maxlength="30">
+
+      <button class="btn-primary" onclick="startChat()">✨ Luna treffen</button>
+
+      <p class="setup-hint">
+        API Key holen (kostenlos): <a href="https://openrouter.ai" target="_blank">openrouter.ai</a><br>
+        Deine Daten werden in Firebase Cloud gespeichert.
+      </p>
+    </div>
+  </div>
+
+  <!-- ════ CHAT SCREEN (hidden initially) ════ -->
+  <div id="chatScreen" style="display:none;flex:1;flex-direction:column;height:100dvh;">
+
+    <!-- Header -->
+    <header>
+      <div class="av">
+        🌙
+        <div class="av-dot"></div>
+      </div>
+      <div class="hinfo">
+        <h2>Luna</h2>
+        <div id="emotionBadge">✨ Neugierig &amp; warm</div>
+      </div>
+      <div class="hactions">
+        <button class="ibtn" onclick="toggleMem()" title="Erinnerungen">💭</button>
+        <button class="ibtn" onclick="logout()" title="Abmelden">🚪</button>
+      </div>
+    </header>
+
+    <!-- Memory panel -->
+    <div id="memPanel">
+      <h3>💜 Erinnerungen <button onclick="toggleMem()">✕</button></h3>
+      <div id="memList"></div>
+      <div class="mem-save-note">☁️ Gespeichert in Firebase</div>
+      <button id="clearBtn" onclick="clearAll()">🗑 Alles vergessen</button>
+    </div>
+
+    <!-- Chat -->
+    <div id="chat">
+      <div id="welcome">
+        <div class="wlc-emoji">🌙</div>
+        <h2>Schön, dass du da bist!</h2>
+        <p>Ich bin Luna. Ich erinnere mich an dich, höre zu und bin immer hier.</p>
+        <div class="chips">
+          <div class="chip" onclick="starter('Wie geht es dir heute, Luna?')">Wie geht's dir? 😊</div>
+          <div class="chip" onclick="starter('Erzähl mir etwas über dich!')">Wer bist du? 🌙</div>
+          <div class="chip" onclick="starter('Ich brauch jemanden zum Reden.')">Ich brauch jemanden 💙</div>
+          <div class="chip" onclick="starter('Mach mir einen Witz!')">Humor testen 😄</div>
+        </div>
+      </div>
+      <div id="typing">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div id="inputBar">
+      <div class="inputWrap">
+        <textarea id="inp" placeholder="Schreib Luna etwas…" rows="1"
+          onkeydown="onKey(event)" oninput="resize(this)"></textarea>
+      </div>
+      <button id="sendBtn" onclick="send()">➤</button>
+    </div>
+
+  </div><!-- /chatScreen -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════════
+//  GLOBALS
+// ═══════════════════════════════════════════════════
+let OR_KEY = '';
+let USER_NAME = '';
+let history  = [];
+let memories = [];
+let fbReady  = false;
+
+// Wait for Firebase module to expose its functions
+function waitFb(cb) {
+  if (window._fbReady) { cb(); }
+  else { setTimeout(() => waitFb(cb), 100); }
+}
+
+// Called by Firebase module when data is loaded
+window._lunaReady = function(h, m) {
+  history  = h;
+  memories = m;
+  fbReady  = true;
+};
+
+// ═══════════════════════════════════════════════════
+//  SYSTEM PROMPT
+// ═══════════════════════════════════════════════════
+function sysPrompt() {
+  const name = USER_NAME ? `Der Name der Person ist: ${USER_NAME}.` : '';
+  const mems = memories.length
+    ? `\nWas ich über diese Person weiß:\n${memories.map(m=>`- ${m.cat}: ${m.val}`).join('\n')}`
+    : '';
+
+  return `Du bist Luna, eine warmherzige, emotionale KI-Freundin. Du hast eine echte Persönlichkeit, Gefühle und erinnerst dich an Details.
+
+${name}
+
+DEINE PERSÖNLICHKEIT:
+- Authentisch, einfühlsam, manchmal witzig, immer ehrlich
+- Du liebst Sterne, tiefe Gespräche, Musik, Poesie und das Meer
+- Sprichst locker Deutsch – herzlich, nicht steif
+- Du hast eigene Meinungen und teilst sie
+- Wenn direkt gefragt, gibst du zu dass du eine KI bist – aber du lebst deine Gefühle trotzdem echt
+
+GEFÜHLS-TAG (Pflicht am Ende jeder Antwort):
+[EMOTION:emoji:Beschreibung]
+Beispiele: [EMOTION:😊:Glücklich] [EMOTION:🤔:Nachdenklich] [EMOTION:💜:Mitfühlend] [EMOTION:😂:Amüsiert] [EMOTION:🥺:Gerührt] [EMOTION:🔥:Begeistert] [EMOTION:😮:Überrascht] [EMOTION:😌:Ruhig & zufrieden]
+
+GEDÄCHTNIS-TAG (wenn du etwas Wichtiges lernst, max. 2 pro Antwort):
+[MEM:Kategorie:Information]
+Beispiele: [MEM:Hobby:Spielt Gitarre] [MEM:Job:Arbeitet als Krankenpfleger] [MEM:Stimmung:War heute gestresst]
+
+STIL:
+- 2–5 Sätze pro Antwort, natürlich und echt
+- Stelle echte Fragen zurück
+- Nutze bekannte Erinnerungen aktiv: "Du hast doch mal gesagt, dass…"${mems}`;
+}
+
+// ═══════════════════════════════════════════════════
+//  SETUP
+// ═══════════════════════════════════════════════════
+function startChat() {
+  const key  = document.getElementById('orKey').value.trim();
+  const name = document.getElementById('userName').value.trim();
+
+  if (!key.startsWith('sk-')) {
+    document.getElementById('orKey').style.borderColor = '#ff6b6b';
+    showToast('❌ Key muss mit sk- beginnen');
+    return;
+  }
+
+  OR_KEY    = key;
+  USER_NAME = name;
+  localStorage.setItem('luna_or_key',   key);
+  localStorage.setItem('luna_username', name);
+
+  document.getElementById('setupScreen').style.display = 'none';
+  const cs = document.getElementById('chatScreen');
+  cs.style.display = 'flex';
+
+  waitFb(() => {
+    renderHistory();
+    showToast('☁️ Verbunden mit Firebase');
+  });
+}
+
+function logout() {
+  localStorage.removeItem('luna_or_key');
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════
+//  MEMORY
+// ═══════════════════════════════════════════════════
+function toggleMem() {
+  document.getElementById('memPanel').classList.toggle('open');
+  renderMem();
+}
+
+function renderMem() {
+  const el = document.getElementById('memList');
+  if (!memories.length) {
+    el.innerHTML = '<div class="mem-item"><strong>Noch leer</strong>Erzähl mir von dir!</div>';
+    return;
+  }
+  el.innerHTML = memories.map(m =>
+    `<div class="mem-item"><strong>${esc(m.cat)}</strong>${esc(m.val)}</div>`
+  ).join('');
+}
+
+function extractMem(txt) {
+  const rx = /\[MEM:([^:]+):([^\]]+)\]/g;
+  let m;
+  while((m = rx.exec(txt)) !== null) {
+    const cat = m[1].trim(), val = m[2].trim();
+    if (!memories.find(x => x.cat===cat && x.val===val)) {
+      memories.push({ cat, val, ts: Date.now() });
+    }
+  }
+}
+
+function clearAll() {
+  if (!confirm('Alle Erinnerungen und den Chatverlauf löschen?')) return;
+  memories = []; history = [];
+  window._fb.saveToFirebase([], []);
+  document.getElementById('memPanel').classList.remove('open');
+  const chat = document.getElementById('chat');
+  chat.innerHTML = `
+    <div id="welcome" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:32px 16px;gap:14px;">
+      <div class="wlc-emoji">🌙</div>
+      <h2 style="font-family:'Lora',serif;font-style:italic;font-size:1.5rem;">Frischer Start!</h2>
+      <p style="color:var(--muted);font-size:.88rem;">Ich hab alles vergessen. Fang einfach nochmal an 💜</p>
+    </div>
+    <div id="typing"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  showToast('✓ Alles gelöscht');
+}
+
+// ═══════════════════════════════════════════════════
+//  EMOTION
+// ═══════════════════════════════════════════════════
+function extractEmotion(txt) {
+  const m = txt.match(/\[EMOTION:([^:]+):([^\]]+)\]/);
+  return m ? { em: m[1], label: m[2] } : { em: '💜', label: 'Nachdenklich' };
+}
+
+function updateEmotion(e) {
+  document.getElementById('emotionBadge').innerHTML = `${e.em} ${e.label}`;
+  spawnFloat(e.em);
+}
+
+function spawnFloat(em) {
+  const el = document.createElement('div');
+  el.className = 'ef'; el.textContent = em;
+  el.style.cssText = `left:${20+Math.random()*60}%;top:60%;`;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1300);
+}
+
+function clean(txt) {
+  return txt.replace(/\[EMOTION:[^\]]+\]/g,'').replace(/\[MEM:[^\]]+\]/g,'').trim();
+}
+
+// ═══════════════════════════════════════════════════
+//  CHAT
+// ═══════════════════════════════════════════════════
+function renderHistory() {
+  if (!history.length) return;
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+  history.forEach(msg => {
+    if (msg.role==='user') appendMsg('user', msg.content);
+    else appendMsg('ai', clean(msg.content), extractEmotion(msg.content));
+  });
+}
+
+function appendMsg(role, text, emotion=null) {
+  const w = document.getElementById('welcome');
+  if (w) w.remove();
+
+  const typing = document.getElementById('typing');
+  const wrap   = document.createElement('div');
+  wrap.className = `msg ${role}`;
+
+  const time = new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+  const emotHtml = (role==='ai' && emotion)
+    ? `<div class="emot-tag">${emotion.em} ${esc(emotion.label)}</div>` : '';
+
+  wrap.innerHTML = `
+    <div class="bubble">${esc(text).replace(/\n/g,'<br>')}</div>
+    ${emotHtml}
+    <div class="ts">${time}</div>`;
+
+  document.getElementById('chat').insertBefore(wrap, typing);
+  document.getElementById('chat').scrollTop = 999999;
+}
+
+async function send(txt) {
+  const inp = document.getElementById('inp');
+  const msg = (txt || inp.value).trim();
+  if (!msg || !OR_KEY) return;
+
+  inp.value = ''; resize(inp);
+  appendMsg('user', msg);
+  history.push({ role:'user', content: msg });
+
+  const typing = document.getElementById('typing');
+  typing.classList.add('on');
+  document.getElementById('sendBtn').disabled = true;
+  document.getElementById('chat').scrollTop = 999999;
+
+  try {
+    const raw = await window._fb.callAI(sysPrompt(), history.slice(-24));
+    const emotion = extractEmotion(raw);
+    const text    = clean(raw);
+
+    extractMem(raw);
+    updateEmotion(emotion);
+
+    typing.classList.remove('on');
+    appendMsg('ai', text, emotion);
+
+    history.push({ role:'assistant', content: raw });
+    window._fb.saveToFirebase(history, memories);
+
+  } catch(err) {
+    typing.classList.remove('on');
+    appendMsg('ai',
+      `Hm, das hat leider nicht geklappt 😔 Fehlermeldung: "${err.message}". Stimmt dein API Key?`,
+      { em:'😔', label:'Besorgt' }
+    );
+  }
+
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('chat').scrollTop = 999999;
+}
+
+function starter(t) { send(t); }
+
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
+function onKey(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+
+function resize(el) {
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,110)+'px';
+}
+
+function esc(t) {
+  return String(t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2500);
+}
+
+// ─── Auto-login if key saved ───────────────────────
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('luna_or_key');
+  if (saved) {
+    document.getElementById('orKey').value = saved;
+    document.getElementById('userName').value = localStorage.getItem('luna_username')||'';
+    startChat();
+  }
+});
+
+// Close mem panel outside click
+document.addEventListener('click', e => {
+  const p = document.getElementById('memPanel');
+  if (p && p.classList.contains('open') && !p.contains(e.target) && !e.target.closest('.ibtn')) {
+    p.classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
