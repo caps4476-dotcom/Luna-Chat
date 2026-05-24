@@ -11,7 +11,8 @@
 body { background:var(--bg); color:var(--text); font-family:'Outfit',sans-serif; display:flex; flex-direction:column; height:100dvh; overflow:hidden; }
 
 header { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid #ffffff10; flex-shrink:0; }
-.av { width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#9d7fe8,#f4a7b9); display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0; }
+.av { width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#9d7fe8,#f4a7b9); display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0; overflow:hidden; cursor:pointer; }
+.av img { width:100%; height:100%; object-fit:cover; border-radius:50%; }
 .hinfo h2 { font-family:'Lora',serif; font-size:1rem; }
 #emo { font-size:.72rem; color:var(--rose); margin-top:2px; }
 .hact { margin-left:auto; }
@@ -51,7 +52,7 @@ header { display:flex; align-items:center; gap:12px; padding:14px 18px; border-b
 <body>
 
 <header>
-  <div class="av">🌙</div>
+  <div class="av" id="av" onclick="changePhoto()" title="Foto ändern">🌙</div>
   <div class="hinfo">
     <h2>Luna</h2>
     <div id="emo">✨ Neugierig &amp; warm</div>
@@ -82,13 +83,14 @@ header { display:flex; align-items:center; gap:12px; padding:14px 18px; border-b
 </div>
 
 <div id="toast"></div>
+<input type="file" id="photoInput" accept="image/*" style="display:none">
 
 <script>
 // ═══════════════════════════════════
 //  NUR HIER DEINE DATEN EINTRAGEN
 // ═══════════════════════════════════
-var KEY  = "tgp_v1_K8o8FroRoRyko6S7e3lYh_RkVQoVWwaHu0wKahwxH1M";
-var NAME = "Udo";
+var KEY  = "DEIN_TOGETHER_AI_KEY";
+var NAME = "Du";
 // ═══════════════════════════════════
 
 var MODELS = [
@@ -207,6 +209,33 @@ function sysPrompt() {
     "Auf Bildwunsch: [IMAGE:englische Beschreibung].";
 }
 
+// ── Profilbild ─────────────────────────────
+function loadPhoto() {
+  var saved = localStorage.getItem("luna_photo");
+  if (saved) setPhoto(saved);
+}
+
+function setPhoto(dataUrl) {
+  var av = document.getElementById("av");
+  av.innerHTML = '<img src="' + dataUrl + '" alt="Luna">';
+  localStorage.setItem("luna_photo", dataUrl);
+}
+
+function changePhoto() {
+  document.getElementById("photoInput").click();
+}
+
+document.getElementById("photoInput").onchange = function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    setPhoto(ev.target.result);
+    toast("Foto gespeichert! 📸");
+  };
+  reader.readAsDataURL(file);
+};
+
 var busy = false;
 
 function send(txt) {
@@ -302,6 +331,7 @@ document.getElementById("inp").onkeydown = function(e) {
 
 // Load history
 window.onload = function() {
+  loadPhoto();
   if (hist.length) {
     var w = document.getElementById("wlc");
     if (w) w.remove();
