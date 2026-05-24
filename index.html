@@ -6,103 +6,85 @@
 <title>Luna</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;1,400&family=Outfit:wght@400;500&display=swap" rel="stylesheet">
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-:root { --bg:#0c0c14; --s2:#1c1a2e; --rose:#f4a7b9; --violet:#9d7fe8; --text:#ede8f5; --muted:#7a6e94; }
-html, body { height:100%; background:var(--bg); color:var(--text); font-family:'Outfit',sans-serif; overflow:hidden; }
-#app { height:100dvh; display:flex; flex-direction:column; max-width:640px; margin:0 auto; }
-
-header { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid #ffffff10; }
-.av { width:46px; height:46px; border-radius:50%; background:linear-gradient(135deg,#9d7fe8,#f4a7b9); display:flex; align-items:center; justify-content:center; font-size:1.4rem; flex-shrink:0; }
-.hinfo h2 { font-family:'Lora',serif; font-size:1rem; }
-#emo { font-size:.72rem; color:var(--rose); margin-top:2px; }
-.hact { margin-left:auto; display:flex; gap:8px; }
-.ibtn { width:36px; height:36px; border-radius:50%; border:1px solid #ffffff15; background:#ffffff08; color:var(--muted); cursor:pointer; font-size:.9rem; }
-
-#chat { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
-#wlc { display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; text-align:center; padding:32px 16px; gap:16px; }
-.we { font-size:3rem; }
-#wlc h2 { font-family:'Lora',serif; font-style:italic; font-size:1.5rem; }
-#wlc p { color:var(--muted); font-size:.9rem; line-height:1.6; }
-.chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
-.chip { padding:9px 16px; border-radius:20px; border:1px solid #ffffff15; background:#ffffff06; color:var(--muted); font-size:.82rem; cursor:pointer; font-family:'Outfit',sans-serif; }
-
-.msg { display:flex; flex-direction:column; max-width:85%; }
-.msg.user { align-self:flex-end; align-items:flex-end; }
-.msg.ai { align-self:flex-start; align-items:flex-start; }
-.bbl { padding:12px 16px; border-radius:18px; font-size:.92rem; line-height:1.6; word-break:break-word; }
-.msg.user .bbl { background:linear-gradient(135deg,#3a2b58,#4d3570); border-bottom-right-radius:4px; }
-.msg.ai .bbl { background:var(--s2); border:1px solid #ffffff08; border-bottom-left-radius:4px; }
-.etag { font-size:.7rem; color:var(--muted); margin-top:4px; padding:0 4px; }
-.ts { font-size:.65rem; color:var(--muted); margin-top:2px; padding:0 4px; }
-
-#typ { display:none; align-self:flex-start; padding:14px 18px; background:var(--s2); border-radius:18px; border-bottom-left-radius:4px; gap:6px; align-items:center; }
-#typ.on { display:flex; }
-.dot { width:7px; height:7px; background:var(--muted); border-radius:50%; animation:bn 1.2s ease-in-out infinite; }
-.dot:nth-child(2){animation-delay:.2s} .dot:nth-child(3){animation-delay:.4s}
-@keyframes bn { 0%,60%,100%{transform:translateY(0);opacity:.4} 30%{transform:translateY(-6px);opacity:1} }
-
-#bar { padding:12px 14px 20px; display:flex; gap:10px; align-items:center; background:var(--bg); border-top:1px solid #ffffff08; }
-.iw { flex:1; background:var(--s2); border:1px solid #ffffff15; border-radius:24px; display:flex; align-items:center; padding:0 16px; min-height:48px; }
-#inp { flex:1; background:none; border:none; outline:none; color:var(--text); font-family:'Outfit',sans-serif; font-size:.92rem; line-height:1.5; padding:12px 0; resize:none; max-height:100px; }
-#inp::placeholder { color:var(--muted); }
-#sBtn {
-  width:52px; height:52px; border-radius:50%; border:none;
-  background:linear-gradient(135deg,var(--violet),var(--rose));
-  color:white; font-size:1.2rem; cursor:pointer; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  -webkit-tap-highlight-color:rgba(0,0,0,0);
-  touch-action:manipulation;
-  user-select:none;
-}
-#toast { position:fixed; bottom:100px; left:50%; transform:translateX(-50%); background:var(--s2); border:1px solid #ffffff15; border-radius:20px; padding:8px 20px; font-size:.82rem; color:var(--muted); opacity:0; transition:opacity .3s; pointer-events:none; z-index:99; }
-#toast.show { opacity:1; }
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{--bg:#0c0c14;--s2:#1c1a2e;--rose:#f4a7b9;--violet:#9d7fe8;--text:#ede8f5;--muted:#7a6e94;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;overflow:hidden;}
+#app{height:100dvh;display:flex;flex-direction:column;max-width:640px;margin:0 auto;}
+header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #ffffff10;flex-shrink:0;}
+.av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#9d7fe8,#f4a7b9);display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0;}
+.hinfo h2{font-family:'Lora',serif;font-size:1rem;}
+#emo{font-size:.72rem;color:var(--rose);margin-top:2px;}
+.hact{margin-left:auto;display:flex;gap:8px;}
+.ibtn{width:36px;height:36px;border-radius:50%;border:1px solid #ffffff15;background:#ffffff08;color:var(--muted);cursor:pointer;font-size:.9rem;touch-action:manipulation;}
+#chat{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;display:flex;flex-direction:column;gap:10px;}
+#wlc{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;text-align:center;padding:32px 16px;gap:16px;}
+.we{font-size:3rem;}
+#wlc h2{font-family:'Lora',serif;font-style:italic;font-size:1.5rem;}
+#wlc p{color:var(--muted);font-size:.9rem;line-height:1.6;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+.chip{padding:9px 16px;border-radius:20px;border:1px solid #ffffff15;background:#ffffff06;color:var(--muted);font-size:.82rem;cursor:pointer;font-family:'Outfit',sans-serif;touch-action:manipulation;}
+.msg{display:flex;flex-direction:column;max-width:85%;}
+.msg.user{align-self:flex-end;align-items:flex-end;}
+.msg.ai{align-self:flex-start;align-items:flex-start;}
+.bbl{padding:12px 16px;border-radius:18px;font-size:.92rem;line-height:1.6;word-break:break-word;}
+.msg.user .bbl{background:linear-gradient(135deg,#3a2b58,#4d3570);border-bottom-right-radius:4px;}
+.msg.ai .bbl{background:var(--s2);border:1px solid #ffffff08;border-bottom-left-radius:4px;}
+.etag{font-size:.7rem;color:var(--muted);margin-top:4px;padding:0 4px;}
+.ts{font-size:.65rem;color:var(--muted);margin-top:2px;padding:0 4px;}
+#typ{display:none;align-self:flex-start;padding:14px 18px;background:var(--s2);border-radius:18px;border-bottom-left-radius:4px;gap:6px;align-items:center;}
+#typ.on{display:flex;}
+.dot{width:7px;height:7px;background:var(--muted);border-radius:50%;animation:bn 1.2s ease-in-out infinite;}
+.dot:nth-child(2){animation-delay:.2s;}.dot:nth-child(3){animation-delay:.4s;}
+@keyframes bn{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-6px);opacity:1;}}
+#bar{padding:12px 14px 20px;display:flex;gap:10px;align-items:center;background:var(--bg);border-top:1px solid #ffffff08;flex-shrink:0;}
+.iw{flex:1;background:var(--s2);border:1px solid #ffffff15;border-radius:24px;padding:0 16px;min-height:50px;display:flex;align-items:center;}
+#inp{width:100%;background:none;border:none;outline:none;color:var(--text);font-family:'Outfit',sans-serif;font-size:1rem;line-height:1.5;padding:0;}
+#inp::placeholder{color:var(--muted);}
+#sBtn{width:54px;height:54px;min-width:54px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--violet),var(--rose));color:white;font-size:1.3rem;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;user-select:none;-webkit-user-select:none;}
+#toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--s2);border:1px solid #ffffff15;border-radius:20px;padding:8px 20px;font-size:.82rem;color:var(--muted);opacity:0;transition:opacity .3s;pointer-events:none;z-index:99;white-space:nowrap;}
+#toast.show{opacity:1;}
 </style>
 </head>
 <body>
 <div id="app">
   <header>
-    <div class="av">🌙</div>
+    <div class="av">&#x1F319;</div>
     <div class="hinfo">
       <h2>Luna</h2>
-      <div id="emo">✨ Neugierig &amp; warm</div>
+      <div id="emo">&#x2728; Neugierig &amp; warm</div>
     </div>
     <div class="hact">
-      <button class="ibtn" id="memBtn">💭</button>
-      <button class="ibtn" id="clrBtn">🗑</button>
+      <button class="ibtn" id="memBtn">&#x1F4AD;</button>
+      <button class="ibtn" id="clrBtn">&#x1F5D1;</button>
     </div>
   </header>
-
   <div id="chat">
     <div id="wlc">
-      <div class="we">🌙</div>
-      <h2>Schön, dass du da bist!</h2>
-      <p>Ich bin Luna. Ich höre zu und erinnere mich an dich.</p>
+      <div class="we">&#x1F319;</div>
+      <h2>Sch&#xF6;n, dass du da bist!</h2>
+      <p>Ich bin Luna. Ich h&#xF6;re zu und erinnere mich an dich.</p>
       <div class="chips">
-        <div class="chip" id="c1">Wie geht es dir? 😊</div>
-        <div class="chip" id="c2">Wer bist du? 🌙</div>
-        <div class="chip" id="c3">Zum Reden 💙</div>
-        <div class="chip" id="c4">Bild malen 🎨</div>
+        <div class="chip" id="c1">Wie geht es dir? &#x1F60A;</div>
+        <div class="chip" id="c2">Wer bist du? &#x1F319;</div>
+        <div class="chip" id="c3">Zum Reden &#x1F499;</div>
+        <div class="chip" id="c4">Bild malen &#x1F3A8;</div>
       </div>
     </div>
-    <div id="typ"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+    <div id="typ">
+      <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
   </div>
-
   <div id="bar">
     <div class="iw">
-      <textarea id="inp" placeholder="Schreib Luna etwas…" rows="1"></textarea>
+      <input type="text" id="inp" placeholder="Schreib Luna etwas&#x2026;" autocomplete="off">
     </div>
-    <button id="sBtn">➤</button>
+    <button id="sBtn">&#x27A4;</button>
   </div>
 </div>
 <div id="toast"></div>
-
 <script>
-// ═══════════════════════════════════
-//  DEINE DATEN HIER EINTRAGEN
-// ═══════════════════════════════════
-var KEY  = "tgp_v1_K8o8FroRoRyko6S7e3lYh_RkVQoVWwaHu0wKahwxH1M";
-var NAME = "Udo";
-// ═══════════════════════════════════
+var KEY   = "tgp_v1_K8o8FroRoRyko6S7e3lYh_RkVQoVWwaHu0wKahwxH1M";
+var NAME  = "Udo";
 
 var MODELS = [
   "meta-llama/Llama-3.3-70B-Instruct-Turbo",
@@ -112,20 +94,24 @@ var MODELS = [
 
 var hist = [];
 var mems = [];
-
-try { hist = JSON.parse(localStorage.getItem("lh") || "[]"); } catch(e) {}
-try { mems = JSON.parse(localStorage.getItem("lm") || "[]"); } catch(e) {}
+try { hist = JSON.parse(localStorage.getItem("lh") || "[]"); } catch(e){}
+try { mems = JSON.parse(localStorage.getItem("lm") || "[]"); } catch(e){}
 
 function sys() {
-  var n = (NAME && NAME !== "Du") ? "Name der Person: " + NAME + ". " : "";
-  var m = mems.length ? " Bekannte Infos: " + mems.map(function(x){return x.c+": "+x.v;}).join(", ") + "." : "";
-  return "Du bist Luna, eine warmherzige emotionale KI-Freundin. " + n + m + " Antworte auf Deutsch, locker und herzlich, 2-5 Saetze. Am Ende IMMER: [EMOTION:emoji:Gefuehl]. Wenn du etwas Wichtiges ueber die Person lernst: [MEM:Kategorie:Info]. Auf Bildwunsch: [IMAGE:englische Beschreibung].";
+  var n = (NAME && NAME !== "Du") ? "Name: " + NAME + ". " : "";
+  var m = mems.length ? "Bekanntes ueber Person: " + mems.map(function(x){return x.c+": "+x.v;}).join(", ") + ". " : "";
+  return "Du bist Luna, warmherzige emotionale KI-Freundin. " + n + m +
+    "Antworte auf Deutsch, locker und herzlich, 2-5 Saetze. " +
+    "Am Ende IMMER: [EMOTION:emoji:Gefuehl]. " +
+    "Wenn du etwas Wichtiges lernst: [MEM:Kategorie:Info]. " +
+    "Auf Bildwunsch: [IMAGE:englische Beschreibung]. " +
+    "Du bist offen und gehst auf alle Themen ein.";
 }
 
 function xE(t) {
-  if (!t) return {e:"💜",l:"Nachdenklich"};
+  if (!t) return {e:"&#x1F49C;", l:"Nachdenklich"};
   var m = t.match(/\[EMOTION:([^:]+):([^\]]+)\]/);
-  return m ? {e:m[1], l:m[2]} : {e:"💜", l:"Nachdenklich"};
+  return m ? {e:m[1], l:m[2]} : {e:"&#x1F49C;", l:"Nachdenklich"};
 }
 function xI(t) {
   if (!t) return null;
@@ -137,23 +123,27 @@ function xM(t) {
   var rx = /\[MEM:([^:]+):([^\]]+)\]/g, m;
   while ((m = rx.exec(t)) !== null) {
     var c = m[1].trim(), v = m[2].trim();
-    if (!mems.find(function(x){return x.c===c&&x.v===v;})) mems.push({c:c,v:v});
+    if (!mems.find(function(x){return x.c===c&&x.v===v;}))
+      mems.push({c:c, v:v});
   }
   try { localStorage.setItem("lm", JSON.stringify(mems)); } catch(e){}
 }
 function cln(t) {
   if (!t) return "";
-  return t.replace(/\[EMOTION:[^\]]+\]/g,"").replace(/\[MEM:[^\]]+\]/g,"").replace(/\[IMAGE:[^\]]+\]/g,"").trim();
+  return t.replace(/\[EMOTION:[^\]]+\]/g,"")
+          .replace(/\[MEM:[^\]]+\]/g,"")
+          .replace(/\[IMAGE:[^\]]+\]/g,"")
+          .trim();
 }
 function esc(t) {
   return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
-function toast(m) {
+function showToast(m) {
   var el = document.getElementById("toast");
   el.textContent = m; el.classList.add("show");
   setTimeout(function(){ el.classList.remove("show"); }, 2500);
 }
-function time() {
+function getTime() {
   return new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
 }
 
@@ -163,9 +153,9 @@ function addMsg(role, text, emo) {
   var typ = document.getElementById("typ");
   var d = document.createElement("div");
   d.className = "msg " + role;
-  var eh = (role==="ai"&&emo) ? '<div class="etag">'+emo.e+" "+esc(emo.l)+"</div>" : "";
+  var eh = (role === "ai" && emo) ? '<div class="etag">'+emo.e+" "+esc(emo.l)+"</div>" : "";
   d.innerHTML = '<div class="bbl">'+esc(text).replace(/
-/g,"<br>")+"</div>"+eh+'<div class="ts">'+time()+"</div>";
+/g,"<br>")+"</div>"+eh+'<div class="ts">'+getTime()+"</div>";
   document.getElementById("chat").insertBefore(d, typ);
   document.getElementById("chat").scrollTop = 999999;
 }
@@ -176,10 +166,10 @@ function addImg(url) {
   d.className = "msg ai";
   var img = document.createElement("img");
   img.src = url;
-  img.style.cssText = "width:100%;max-width:280px;border-radius:16px;display:block;cursor:pointer";
+  img.style.cssText = "width:100%;max-width:280px;border-radius:16px;display:block;cursor:pointer;margin-bottom:4px;";
   img.onclick = function(){ window.open(url,"_blank"); };
   var ts = document.createElement("div");
-  ts.className = "ts"; ts.textContent = time();
+  ts.className = "ts"; ts.textContent = getTime();
   d.appendChild(img); d.appendChild(ts);
   document.getElementById("chat").insertBefore(d, typ);
   document.getElementById("chat").scrollTop = 999999;
@@ -190,40 +180,50 @@ async function callAI(msgs) {
     try {
       var r = await fetch("https://api.together.xyz/v1/chat/completions", {
         method: "POST",
-        headers: {"Authorization":"Bearer "+KEY, "Content-Type":"application/json"},
-        body: JSON.stringify({model:MODELS[i], max_tokens:500, messages:msgs})
+        headers: {
+          "Authorization": "Bearer " + KEY,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({model: MODELS[i], max_tokens: 500, messages: msgs})
       });
       var d = await r.json();
-      if (d.error) { continue; }
-      var t = d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
-      if (t) return t;
-    } catch(e) { continue; }
+      if (d.error){ console.warn("Model error:", d.error); continue; }
+      var txt = d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
+      if (txt) return txt;
+    } catch(e){ console.warn("Fetch error:", e); }
   }
-  throw new Error("Keine Verbindung – bitte prüfe deinen Together AI Key.");
+  throw new Error("Keine Verbindung. Bitte Together AI Key pruefen.");
 }
 
 async function callImg(prompt) {
   try {
     var r = await fetch("https://api.together.xyz/v1/images/generations", {
       method: "POST",
-      headers: {"Authorization":"Bearer "+KEY, "Content-Type":"application/json"},
-      body: JSON.stringify({model:"black-forest-labs/FLUX.1-schnell-Free", prompt:prompt, width:512, height:512, steps:4, n:1})
+      headers: {
+        "Authorization": "Bearer " + KEY,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "black-forest-labs/FLUX.1-schnell-Free",
+        prompt: prompt, width: 512, height: 512, steps: 4, n: 1
+      })
     });
     var d = await r.json();
     if (d.data && d.data[0] && d.data[0].url) return d.data[0].url;
-    if (d.data && d.data[0] && d.data[0].b64_json) return "data:image/png;base64,"+d.data[0].b64_json;
-  } catch(e) {}
+    if (d.data && d.data[0] && d.data[0].b64_json) return "data:image/png;base64," + d.data[0].b64_json;
+  } catch(e){ console.warn("Image error:", e); }
   return null;
 }
 
-var sending = false;
+var busy = false;
+
 function doSend(txt) {
+  if (busy) return;
   var inp = document.getElementById("inp");
-  var msg = (txt || inp.value || "").trim();
-  if (!msg || sending) return;
-  sending = true;
+  var msg = (txt !== undefined ? txt : inp.value).trim();
+  if (!msg) return;
+  busy = true;
   inp.value = "";
-  inp.style.height = "auto";
 
   addMsg("user", msg);
   hist.push({role:"user", content:msg});
@@ -234,8 +234,9 @@ function doSend(txt) {
   document.getElementById("chat").scrollTop = 999999;
 
   var msgs = [{role:"system", content:sys()}].concat(hist.slice(-20));
+
   callAI(msgs).then(function(raw) {
-    var emo = xE(raw);
+    var emo  = xE(raw);
     var text = cln(raw);
     var imgP = xI(raw);
     xM(raw);
@@ -245,55 +246,59 @@ function doSend(txt) {
     hist.push({role:"assistant", content:raw});
     try { localStorage.setItem("lh", JSON.stringify(hist.slice(-40))); } catch(e){}
     if (imgP) {
-      toast("🎨 Luna malt ein Bild…");
+      showToast("Luna malt ein Bild...");
       callImg(imgP).then(function(url){ if(url) addImg(url); });
     }
-  }).catch(function(e) {
+  }).catch(function(err) {
     typ.classList.remove("on");
-    addMsg("ai", "Hm, das hat nicht geklappt 😔 " + e.message, {e:"😔",l:"Besorgt"});
+    addMsg("ai", "Das hat nicht geklappt: " + err.message, {e:"&#x1F61E;",l:"Besorgt"});
   }).finally(function() {
     document.getElementById("sBtn").disabled = false;
-    sending = false;
+    busy = false;
     document.getElementById("chat").scrollTop = 999999;
   });
 }
 
-// Button events - alle Varianten für Android
-var btn = document.getElementById("sBtn");
-btn.addEventListener("click", function(e) { e.preventDefault(); doSend(); });
-btn.addEventListener("touchstart", function(e) { e.preventDefault(); doSend(); }, {passive:false});
+// Send button - alle Touch Events
+var sBtn = document.getElementById("sBtn");
+sBtn.addEventListener("touchend", function(e){
+  e.preventDefault();
+  doSend();
+}, false);
+sBtn.addEventListener("click", function(e){
+  e.preventDefault();
+  doSend();
+}, false);
 
 // Enter key
-document.getElementById("inp").addEventListener("keydown", function(e) {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSend(); }
-});
-
-// Auto-resize textarea
-document.getElementById("inp").addEventListener("input", function() {
-  this.style.height = "auto";
-  this.style.height = Math.min(this.scrollHeight, 100) + "px";
+document.getElementById("inp").addEventListener("keydown", function(e){
+  if (e.key === "Enter"){ e.preventDefault(); doSend(); }
 });
 
 // Chips
-document.getElementById("c1").addEventListener("click", function(){ doSend("Wie geht es dir heute, Luna?"); });
-document.getElementById("c2").addEventListener("click", function(){ doSend("Erzähl mir etwas über dich!"); });
-document.getElementById("c3").addEventListener("click", function(){ doSend("Ich brauch jemanden zum Reden."); });
-document.getElementById("c4").addEventListener("click", function(){ doSend("Mal mir ein schönes Bild!"); });
+document.getElementById("c1").addEventListener("touchend", function(e){ e.preventDefault(); doSend("Wie geht es dir heute, Luna?"); }, false);
+document.getElementById("c1").addEventListener("click",    function(){ doSend("Wie geht es dir heute, Luna?"); });
+document.getElementById("c2").addEventListener("touchend", function(e){ e.preventDefault(); doSend("Erzähl mir etwas über dich!"); }, false);
+document.getElementById("c2").addEventListener("click",    function(){ doSend("Erzähl mir etwas über dich!"); });
+document.getElementById("c3").addEventListener("touchend", function(e){ e.preventDefault(); doSend("Ich brauch jemanden zum Reden."); }, false);
+document.getElementById("c3").addEventListener("click",    function(){ doSend("Ich brauch jemanden zum Reden."); });
+document.getElementById("c4").addEventListener("touchend", function(e){ e.preventDefault(); doSend("Mal mir ein schönes Bild!"); }, false);
+document.getElementById("c4").addEventListener("click",    function(){ doSend("Mal mir ein schönes Bild!"); });
 
 // Clear
-document.getElementById("clrBtn").addEventListener("click", function() {
+document.getElementById("clrBtn").addEventListener("click", function(){
   if (!confirm("Alles löschen?")) return;
   hist = []; mems = [];
   try { localStorage.removeItem("lh"); localStorage.removeItem("lm"); } catch(e){}
   location.reload();
 });
 
-// Load history
-window.addEventListener("load", function() {
+// Load history on start
+window.addEventListener("load", function(){
   if (hist.length) {
     var w = document.getElementById("wlc");
     if (w) w.remove();
-    hist.forEach(function(m) {
+    hist.forEach(function(m){
       if (m.role === "user") addMsg("user", m.content);
       else addMsg("ai", cln(m.content), xE(m.content));
     });
