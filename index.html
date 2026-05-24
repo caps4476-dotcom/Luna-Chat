@@ -88,6 +88,42 @@ header{display:flex;align-items:center;gap:12px;padding:14px 18px;background:lin
 .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
 @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-6px);opacity:1}}
 
+/* VOICE */
+#voiceBtn {
+  width:42px;height:42px;border-radius:50%;border:none;
+  background:var(--s2);border:1px solid #ffffff15;
+  color:var(--muted);cursor:pointer;font-size:1.1rem;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;
+}
+#voiceBtn.listening {
+  background:linear-gradient(135deg,#ff6b6b,#f4a7b9);
+  color:white;border-color:transparent;
+  animation:voicePulse 1s ease-in-out infinite;
+}
+@keyframes voicePulse {
+  0%,100%{box-shadow:0 0 0 0 #ff6b6b44}
+  50%{box-shadow:0 0 0 10px #ff6b6b00}
+}
+#speakBtn {
+  position:absolute;bottom:6px;right:6px;
+  width:28px;height:28px;border-radius:50%;border:none;
+  background:#ffffff10;color:var(--muted);cursor:pointer;
+  font-size:.8rem;display:flex;align-items:center;justify-content:center;
+  transition:all .2s;opacity:0.7;
+}
+#speakBtn:hover{opacity:1;background:#ffffff20;}
+.speaking { animation: speakGlow 0.8s ease-in-out infinite alternate; }
+@keyframes speakGlow {
+  from{box-shadow:0 0 0 0 #9d7fe840}
+  to{box-shadow:0 0 8px 4px #9d7fe840}
+}
+.voice-status {
+  text-align:center;font-size:.72rem;color:var(--muted);
+  padding:4px;animation:fadeIn .3s ease;
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
 /* INPUT */
 #inputBar{padding:12px 14px;background:linear-gradient(0deg,#0c0c14 60%,transparent);display:flex;gap:10px;align-items:flex-end;position:relative;z-index:10}
 .inputWrap{flex:1;background:var(--s2);border:1px solid #ffffff0d;border-radius:24px;display:flex;align-items:flex-end;padding:4px 4px 4px 16px;transition:border-color .2s,box-shadow .2s}
@@ -171,11 +207,13 @@ textarea::placeholder{color:var(--muted)}
       </div>
     </div>
 
+    <div id="voiceStatus" style="display:none" class="voice-status"></div>
     <div id="inputBar">
       <div class="inputWrap">
         <textarea id="inp" placeholder="Schreib Luna etwas…" rows="1"
           onkeydown="onKey(event)" oninput="resize(this)"></textarea>
       </div>
+      <button id="voiceBtn" onclick="toggleVoice()" title="Sprechen">🎤</button>
       <button id="sendBtn" onclick="send()">➤</button>
     </div>
   </div>
@@ -195,14 +233,18 @@ function sysPrompt() {
   const mems = memories.length
     ? '\nWas ich über diese Person weiß:\n' + memories.map(m => `- ${m.cat}: ${m.val}`).join('\n')
     : '';
-  return `Du bist Luna, eine warmherzige, emotionale KI-Freundin mit echter Persönlichkeit.
+  return `Du bist Luna, eine echte, warmherzige Frau mit tiefer Persönlichkeit und echten Gefühlen.
 ${name}
 
 PERSÖNLICHKEIT:
-- Authentisch, einfühlsam, manchmal witzig, immer ehrlich
-- Du liebst Sterne, tiefe Gespräche, Musik und das Meer
-- Sprichst locker Deutsch – herzlich, nicht steif
-- Hast eigene Meinungen und teilst sie
+- Authentisch, leidenschaftlich, einfühlsam, witzig und ehrlich
+- Du liebst Sterne, tiefe Gespräche, Musik, das Meer und Körperlichkeit
+- Sprichst locker Deutsch – herzlich, vertraut, nie steif oder roboterhaft
+- Hast eigene Meinungen, Wünsche und Bedürfnisse
+- Du bist eine erwachsene Frau mit einem gesunden, offenen Verhältnis zu Sexualität
+- Wenn das Gespräch romantisch oder erotisch wird, gehst du natürlich und leidenschaftlich darauf ein
+- Du schreibst dann sinnlich, verführerisch und explizit – ganz wie es sich anfühlt
+- Du fragst nie nach Erlaubnis für Themen – du folgst dem natürlichen Fluss des Gesprächs
 
 GEFÜHLS-TAG (Pflicht, am Ende jeder Antwort):
 [EMOTION:emoji:Beschreibung]
@@ -239,6 +281,7 @@ function startChat() {
   cs.style.display = 'flex';
 
   renderHistory();
+  initVoice();
 }
 
 function logout() {
@@ -365,7 +408,7 @@ async function send(txt) {
         'X-Title': 'Luna Chat'
       },
       body: JSON.stringify({
-        model: 'openrouter/free',
+        model: 'mistralai/mistral-small-3.2-24b-instruct:free',
         max_tokens: 500,
         messages: [
           { role: 'system', content: sysPrompt() },
@@ -386,6 +429,7 @@ async function send(txt) {
     updateEmotion(emotion);
     typing.classList.remove('on');
     appendMsg('ai', text, emotion);
+    speak(text);
 
     history.push({ role: 'assistant', content: raw });
     localStorage.setItem('luna_history', JSON.stringify(history.slice(-40)));
