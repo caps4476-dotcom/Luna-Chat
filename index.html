@@ -363,7 +363,7 @@ async function send(txt) {
         'X-Title': 'Luna Chat'
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.1-8b-instruct:free',
+        model: 'google/gemma-3-4b-it:free',
         max_tokens: 500,
         messages: [
           { role: 'system', content: sysPrompt() },
