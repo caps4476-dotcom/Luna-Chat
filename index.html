@@ -95,14 +95,15 @@ header { display:flex; align-items:center; gap:12px; padding:14px 18px; border-b
 // ═══════════════════════════════════
 //  NUR HIER DEINE DATEN EINTRAGEN
 // ═══════════════════════════════════
-var KEY  = "tgp_v1_K8o8FroRoRyko6S7e3lYh_RkVQoVWwaHu0wKahwxH1M";
-var NAME = "Udo";
+var GROQ_KEY = "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";      // Kostenlos: console.groq.com
+var KEY  = "DEIN_TOGETHER_AI_KEY";   // Nur für Bilder (Together AI)
+var NAME = "Du";
 // ═══════════════════════════════════
 
 var MODELS = [
-  "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-  "mistralai/Mistral-7B-Instruct-v0.3",
-  "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo"
+  "llama-3.3-70b-versatile",
+  "llama-3.1-8b-instant",
+  "gemma2-9b-it"
 ];
 
 var hist = [];
@@ -276,17 +277,17 @@ function send(txt) {
     if (tried >= MODELS.length) {
       document.getElementById("typ").classList.remove("on");
       document.getElementById("btn").disabled = false;
-      addMsg("ai", "Fehler: Kein Modell verfuegbar. Bitte Together AI Key pruefen.", {e:"😔", l:"Besorgt"});
+      addMsg("ai", "Fehler: Kein Modell verfuegbar. Bitte Groq Key pruefen (console.groq.com).", {e:"😔", l:"Besorgt"});
       busy = false;
       return;
     }
     var model = MODELS[tried];
     tried++;
 
-    fetch("https://api.together.xyz/v1/chat/completions", {
+    fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": "Bearer " + KEY,
+        "Authorization": "Bearer " + GROQ_KEY,
         "Content-Type": "application/json"
       },
       body: JSON.stringify({model:model, max_tokens:500, messages:messages})
@@ -394,22 +395,54 @@ function stopMic() {
 function speak(text) {
   if (!voiceOn || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-  var utt = new SpeechSynthesisUtterance(text);
+
+  // Emojis und Sonderzeichen entfernen
+  var clean = text
+    .replace(/[\u{1F000}-\u{1FFFF}]/gu, "")
+    .replace(/[*_~]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  var utt = new SpeechSynthesisUtterance(clean);
   utt.lang = "de-DE";
-  utt.rate = 0.95;
-  utt.pitch = 1.1;
+  utt.rate = 1.15;   // Etwas schneller
+  utt.pitch = 1.25;  // Höher und weiblicher
+  utt.volume = 1.0;
+
+  // Beste verfügbare deutsche Stimme suchen
   var voices = window.speechSynthesis.getVoices();
-  var german = voices.find(function(v){
-    return v.lang.startsWith("de") && (
-      v.name.includes("Anna") || v.name.includes("Petra") ||
-      v.name.includes("Katja") || v.name.includes("Google")
-    );
-  }) || voices.find(function(v){ return v.lang.startsWith("de"); });
-  if (german) utt.voice = german;
+  var preferred = [
+    "Google Deutsch", "Google de-DE", "Anna", "Petra", "Katja",
+    "Microsoft Katja", "Microsoft Anna", "Helena"
+  ];
+  var best = null;
+  for (var i = 0; i < preferred.length; i++) {
+    best = voices.find(function(v){
+      return v.name.includes(preferred[i]) && v.lang.startsWith("de");
+    });
+    if (best) break;
+  }
+  if (!best) {
+    best = voices.find(function(v){ return v.lang.startsWith("de"); });
+  }
+  if (best) utt.voice = best;
+
   var av = document.getElementById("av");
-  utt.onstart = function(){ av.style.boxShadow = "0 0 0 6px #9d7fe844"; };
-  utt.onend   = function(){ av.style.boxShadow = "none"; };
-  window.speechSynthesis.speak(utt);
+  utt.onstart = function(){
+    av.style.boxShadow = "0 0 0 6px #9d7fe844";
+    av.style.transition = "box-shadow 0.3s";
+  };
+  utt.onend = function(){
+    av.style.boxShadow = "none";
+  };
+  utt.onerror = function(){
+    av.style.boxShadow = "none";
+  };
+
+  // Android Fix: kurze Verzögerung damit die Stimmen geladen sind
+  setTimeout(function(){
+    window.speechSynthesis.speak(utt);
+  }, 100);
 }
 
 // Avatar antippen = Stimme an/aus
