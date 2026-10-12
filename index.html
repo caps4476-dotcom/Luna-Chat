@@ -294,7 +294,16 @@ function send(txt) {
     })
     .then(function(r){ return r.json(); })
     .then(function(d){
-      if (d.error) { tryModel(); return; }
+      if (d.error) {
+        if (tried >= MODELS.length) {
+          document.getElementById("typ").classList.remove("on");
+          document.getElementById("btn").disabled = false;
+          addMsg("ai", "API Fehler: " + (d.error.message || JSON.stringify(d.error)), {e:"😔", l:"Besorgt"});
+          busy = false;
+          return;
+        }
+        tryModel(); return;
+      }
       var raw = d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
       if (!raw) { tryModel(); return; }
 
@@ -330,7 +339,16 @@ function send(txt) {
       busy = false;
       document.getElementById("chat").scrollTop = 99999;
     })
-    .catch(function(){ tryModel(); });
+    .catch(function(err){
+      if (tried >= MODELS.length) {
+        document.getElementById("typ").classList.remove("on");
+        document.getElementById("btn").disabled = false;
+        addMsg("ai", "Verbindungsfehler: " + (err.message || "Unbekannt"), {e:"😔", l:"Besorgt"});
+        busy = false;
+        return;
+      }
+      tryModel();
+    });
   }
 
   tryModel();
